@@ -11,7 +11,7 @@ def test_create_synthetic_image(tmp_path):
 
 def test_run_one_benchmark_returns_metrics(tmp_path):
     row = run_one_benchmark('unit', (48, 64), 'TACTILE', output_dir=tmp_path)
-    assert row['schema_version'] == '1.8'
+    assert row['schema_version'] == '1.9'
     assert row['runtime_sec'] >= 0
     assert row['width'] == 64
     assert row['height'] == 48
