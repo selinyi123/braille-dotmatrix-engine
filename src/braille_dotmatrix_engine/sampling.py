@@ -25,6 +25,17 @@ def gaussian_dot_sampling_flat(img, coords_xy, spacing_px, cfg):
 def gaussian_dot_sampling_grid(img, coords, spacing_px, cfg):
     return gaussian_dot_sampling_flat(img, coords.reshape(-1, 2), spacing_px, cfg).reshape(coords.shape[:2])
 
+def _tile_weights(tile_coords, x0, y0, x1, y1, overlap):
+    if overlap <= 0:
+        return np.ones(tile_coords.shape[0], dtype=np.float32)
+    xs = tile_coords[:, 0]
+    ys = tile_coords[:, 1]
+    left = np.clip((xs - x0) / overlap, 0.0, 1.0)
+    right = np.clip((x1 - xs) / overlap, 0.0, 1.0)
+    top = np.clip((ys - y0) / overlap, 0.0, 1.0)
+    bottom = np.clip((y1 - ys) / overlap, 0.0, 1.0)
+    return np.maximum(np.minimum.reduce([left, right, top, bottom]), 0.05).astype(np.float32)
+
 def process_tiles(img, coords, cfg):
     gray = float01(img)
     h, w = gray.shape
@@ -45,9 +56,11 @@ def process_tiles(img, coords, cfg):
                 continue
             y0e, y1e = max(0, y0-border), min(h, y1+border)
             x0e, x1e = max(0, x0-border), min(w, x1+border)
-            samples = gaussian_dot_sampling_flat(gray[y0e:y1e, x0e:x1e], coords[ys, xs] - np.array([x0e, y0e]), spacing, cfg)
-            values[ys, xs] += samples
-            weights[ys, xs] += 1
+            selected = coords[ys, xs]
+            samples = gaussian_dot_sampling_flat(gray[y0e:y1e, x0e:x1e], selected - np.array([x0e, y0e]), spacing, cfg)
+            wt = _tile_weights(selected.reshape(-1, 2), x0, y0, x1, y1, overlap)
+            values[ys, xs] += samples * wt
+            weights[ys, xs] += wt
     missing = weights <= 0
     if np.any(missing):
         values[missing] = gaussian_dot_sampling_grid(gray, coords, spacing, cfg)[missing]
