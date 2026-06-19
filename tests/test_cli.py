@@ -26,6 +26,24 @@ def test_cli_ascii_mode_generates_outputs(tmp_path: Path, monkeypatch):
     assert (tmp_path / 'ascii.json').exists()
 
 
+def test_cli_ascii_html_and_quality_controls(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert main([
+        '--width-cells', '12',
+        '--mode', 'ASCII_COLOR',
+        '--ascii-preset', 'blocks',
+        '--ascii-html',
+        '--output-html', 'ascii.html',
+        '--braille-target-density', '0.35',
+        '--output-png', 'ascii.png',
+        '--output-txt', 'ascii.ansi',
+        '--report-json', 'ascii.json',
+    ]) == 0
+    assert (tmp_path / 'ascii.html').exists()
+    assert (tmp_path / 'ascii.ansi').exists()
+    assert (tmp_path / 'ascii.json').exists()
+
+
 def test_cli_benchmark_generates_csv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(['--benchmark', '--benchmark-csv', 'bench.csv']) == 0
