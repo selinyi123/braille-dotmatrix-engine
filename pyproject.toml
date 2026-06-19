@@ -4,10 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "braille-dotmatrix-engine"
-version = "1.1.0"
-description = "Corrected Unicode Braille dot-matrix art renderer"
+version = "1.1.1"
+description = "Unicode Braille dot-matrix art renderer with tactile and screen output"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "selinyi123" }]
 dependencies = ["numpy>=1.24", "opencv-python>=4.8", "Pillow>=10.0", "scipy>=1.10"]
 
 [project.optional-dependencies]
