@@ -22,7 +22,7 @@ def test_process_image_chromatic_report(tmp_path):
     image = create_demo_image(tmp_path / 'demo.png', size=96)
     report_path = tmp_path / 'report.json'
     report = process_image(image, BrailleArtConfig(output_width_cells=12, mode='CHROMATIC'), tmp_path / 'out.png', tmp_path / 'out.txt', report_path)
-    assert report['schema_version'] == '1.8'
+    assert report['schema_version'] == '1.9'
     assert report['mode'] == 'CHROMATIC'
     assert report['chromatic_render']['backend'] == 'CHROMATIC'
     assert (tmp_path / 'out.png').exists()
