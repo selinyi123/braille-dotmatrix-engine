@@ -14,6 +14,7 @@ from .sampling import build_dot_grid, process_tiles
 from .tactile import geometry_report, validate_tactile_output
 from .vector import export_svg
 from .braille_unicode import braille_matrix_to_text, encode_to_braille_matrix, unicode_roundtrip_test
+from .chromatic import render_chromatic_png
 
 
 def create_demo_image(path='test_input.png', size=512):
@@ -56,11 +57,15 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     quality = compute_quality_metrics(values, binary, cfg)
     text = braille_matrix_to_text(encode_to_braille_matrix(binary))
     Path(output_txt).write_text(text, encoding='utf-8')
-    render_braille_png(binary, cfg, output_png)
+    chromatic_report = None
+    if cfg.mode == 'CHROMATIC':
+        chromatic_report = render_chromatic_png(binary, img, cfg, output_png)
+    else:
+        render_braille_png(binary, cfg, output_png)
     svg_report = export_svg(binary, cfg, output_svg) if output_svg is not None else None
-    raster_check = raster_roundtrip_check(binary, output_png, cfg) if cfg.mode == 'TACTILE' else {'ok': None, 'skipped': 'screen mode uses antialias/glow'}
+    raster_check = raster_roundtrip_check(binary, output_png, cfg) if cfg.mode == 'TACTILE' else {'ok': None, 'skipped': 'non-tactile mode uses antialias/glow/color'}
     report = {
-        'schema_version': '1.5',
+        'schema_version': '1.7',
         'image_shape': [h, w],
         'dots_shape': [dy, dx],
         'cells_shape': [dy//4, dx//2],
@@ -69,6 +74,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
         'quality_metrics': quality,
         'tactile_geometry': geometry_report(cfg),
         'tactile_export': svg_report,
+        'chromatic_render': chromatic_report,
         'runtime_sec': time.time() - start,
         'seed': cfg.seed,
         'mode': cfg.mode,
