@@ -29,6 +29,8 @@ def dither_jjn(img):
 DITHER_MAP = {'Atkinson': dither_atkinson, 'Stucki': dither_stucki, 'JJN': dither_jjn}
 
 def select_best_dither(values, candidates):
+    if not candidates:
+        raise ValueError('dither_candidates must not be empty')
     small = cv2.resize(values, (max(4, values.shape[1]//4), max(4, values.shape[0]//4)), interpolation=cv2.INTER_AREA)
     best, score = candidates[0], float('inf')
     for name in candidates:
@@ -41,7 +43,7 @@ def select_best_dither(values, candidates):
     return best, DITHER_MAP[best](values)
 
 def correct_over_dense_regions(binary, cfg):
-    b = np.asarray(binary, dtype=np.float32)
+    b = np.asarray(binary, dtype=np.float32).copy()
     density = uniform_filter(b, size=7, mode='reflect')
     over = (density > cfg.max_local_occupancy) & (b > 0)
     if not np.any(over):
