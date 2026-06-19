@@ -28,7 +28,7 @@ def test_process_image_chromatic_report(tmp_path):
         tmp_path / 'out.txt',
         report_path,
     )
-    assert report['schema_version'] == '1.7'
+    assert report['schema_version'] == '1.8'
     assert report['mode'] == 'CHROMATIC'
     assert report['chromatic_render']['backend'] == 'CHROMATIC'
     assert (tmp_path / 'out.png').exists()
