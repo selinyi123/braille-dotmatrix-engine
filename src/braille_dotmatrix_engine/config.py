@@ -44,11 +44,26 @@ class BrailleArtConfig:
     tile_size_px: int = 512
     tile_overlap_px: int = 64
     seed: int = 42
-    mode: Literal["TACTILE", "SCREEN"] = "TACTILE"
+    mode: Literal["TACTILE", "SCREEN", "CHROMATIC"] = "TACTILE"
     invert_luminance: bool = True
     render_spacing_px: int = 10
     max_local_occupancy: float = 0.72
     strict_tactile_validation: bool = False
+
+    # Screen-only chromatic rendering backend. These fields are intentionally
+    # used in src/braille_dotmatrix_engine/chromatic.py so public knobs are not
+    # dead API surface.
+    chromatic_cell_w_px: int = 10
+    chromatic_cell_h_px: int = 16
+    chromatic_sigma_ratio: float = 0.62
+    chromatic_saturation_boost: float = 1.6
+    chromatic_neutral_sat: float = 0.12
+    chromatic_contrast: float = 1.35
+    chromatic_sharpen: float = 1.10
+    chromatic_s_curve: float = 0.25
+    chromatic_bloom: float = 0.18
+    chromatic_luma_threshold: int = 108
+    chromatic_white_balance: bool = True
 
     @property
     def dot_diameter_mm(self) -> float:
