@@ -56,12 +56,20 @@ class BrailleArtConfig:
     braille_gamma: float = 1.0
     braille_contrast: float = 1.12
 
+    # Braille quality-control layer.
+    braille_target_density: float | None = None
+    braille_density_strength: float = 0.55
+    braille_seam_tile: int = 16
+    braille_seam_threshold: float = 0.18
+
     # ASCII backend configuration.
     ascii_charset: str = " .:-=+*#%@"
+    ascii_charset_preset: Literal["custom", "standard", "dense", "blocks", "binary"] = "custom"
     ascii_aspect_ratio: float = 0.50
     ascii_edge_weight: float = 0.25
     ascii_invert: bool = False
     ascii_ansi: bool = False
+    ascii_html: bool = False
 
     # Screen-only chromatic rendering backend.
     chromatic_cell_w_px: int = 10
