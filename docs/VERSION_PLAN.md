@@ -7,6 +7,8 @@
 - API usage documentation.
 - Project design documentation.
 - Version metadata update.
+- README version sync.
+- Pillow compatibility cleanup.
 
 ## v1.2 metrics layer
 
