@@ -2,25 +2,26 @@
 
 ## v1.1.2 completed scope
 
-- CLI smoke test.
-- Invalid input tests.
+- CLI validation and output path hardening.
+- CLI invalid input tests.
+- CLI nested output directory tests.
 - API usage documentation.
-- Project design documentation.
+- Architecture documentation.
 - Version metadata update.
-- README version sync.
-- Pillow compatibility cleanup.
 
 ## v1.2 metrics layer
 
-- Add `metrics.py`.
+- Add metrics.py.
 - Add MSE, PSNR, occupancy, edge preservation, and local structure scores.
 - Save metrics into JSON reports.
+- Add benchmark fixtures.
 
 ## v1.3 tactile export layer
 
-- Add richer tactile geometry.
+- Add tactile.py.
+- Model richer tactile geometry.
 - Add SVG export.
-- Add printer/material presets.
+- Add printer and material presets.
 
 ## v1.4 performance layer
 
