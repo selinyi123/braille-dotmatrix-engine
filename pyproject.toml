@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "braille-dotmatrix-engine"
-version = "1.1.1"
+version = "1.1.2"
 description = "Unicode Braille dot-matrix art renderer with tactile and screen output"
 readme = "README.md"
 requires-python = ">=3.10"
