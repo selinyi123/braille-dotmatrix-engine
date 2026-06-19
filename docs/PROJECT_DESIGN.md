@@ -2,35 +2,73 @@
 
 ## Positioning
 
-Braille Dot-Matrix Engine is not only a terminal Braille-art converter. It is designed as a validation-first rendering pipeline for Unicode Braille text, tactile-style raster preview, screen preview, and future tactile export formats.
+`braille-dotmatrix-engine` should be treated as a layered rendering and encoding system, not only as an image-to-character-art converter.
 
-## Core loop
+The current V1 layer is a Unicode Braille renderer. The long-term target is a semantic tactile graphics engine.
+
+## Pipeline
 
 ```text
-source image -> dot field -> Unicode Braille cells -> rendered preview -> reverse validation -> report
+Image
+↓
+Preprocess
+↓
+Dot sampling
+↓
+Dither and density correction
+↓
+Unicode Braille encoding
+↓
+Tactile/screen/vector exports
+↓
+Validation report
 ```
 
-## Current architecture
+Future versions should insert a semantic layer before rendering:
 
-- `config.py`: geometry, material, printer, and runtime configuration.
-- `preprocess.py`: image normalization and CLAHE preprocessing.
-- `sampling.py`: dot grid construction, Gaussian sampling, tiled processing.
-- `dither.py`: Atkinson, Stucki, JJN, adaptive candidate selection.
-- `braille_unicode.py`: 8-dot Unicode Braille mapping.
-- `raster.py`: tactile and screen PNG rendering plus raster checks.
-- `pipeline.py`: end-to-end orchestration.
-- `cli.py`: command-line interface.
+```text
+Image
+↓
+Semantic region analysis
+↓
+Region-specific tactile policy
+↓
+Braille/tactile rendering
+```
 
-## Design principles
+## Current module map
 
-1. Logical Braille dots must not be changed by printer compensation.
-2. Physical compensation belongs to render/export geometry.
-3. Unicode roundtrip must remain deterministic.
-4. Tactile validation and screen preview should be separate modes.
-5. Every version should improve either correctness, validation, export, performance, or UX.
-6. CLI behavior must be tested as a first-class public interface.
-7. Failure paths must be tested, not only happy paths.
+| Module | Responsibility |
+|---|---|
+| `config.py` | Configuration dataclasses for geometry, material, printer, and pipeline parameters. |
+| `preprocess.py` | CLAHE preprocessing and float normalization. |
+| `sampling.py` | Dot-grid generation, Gaussian sampling, and tile/overlap sampling. |
+| `dither.py` | Atkinson/Stucki/JJN dithering and local density correction. |
+| `braille_unicode.py` | Unicode Braille scalar and matrix encode/decode logic. |
+| `raster.py` | PNG rendering and raster validation. |
+| `vector.py` | SVG tactile export in millimeter coordinates. |
+| `metrics.py` | MSE, PSNR, edge score, occupancy, and local-density metrics. |
+| `pipeline.py` | End-to-end orchestration and report generation. |
+| `cli.py` | Command-line interface. |
 
-## Near-term design target
+## Engineering principles
 
-v1.x should harden the Python engine. v2.x should add product surfaces such as local web UI, batch jobs, preset profiles, and export bundles.
+1. Keep pixel/dot-level numeric work in NumPy, SciPy, and OpenCV.
+2. Allow tile-level scheduling loops; avoid pixel-level Python loops in core computation.
+3. Keep Unicode Braille mapping exhaustively tested.
+4. Separate screen aesthetics from tactile manufacturing constraints.
+5. Treat every exported artifact as reproducible from image, config, and seed.
+
+## Known limitations
+
+- Current semantic awareness is not implemented yet.
+- Tactile validation is basic and does not yet simulate real fingertip readability.
+- Dithering uses sequential error diffusion; this is correct for the algorithm but not fully vectorized.
+- Raster drawing still uses PIL drawing loops; acceptable for V1, but a NumPy/OpenCV rasterizer is preferred for V1.5+.
+- SVG output exports circles but does not yet emit embossing-machine-specific formats.
+
+## Next architecture target
+
+The next major architectural change should introduce a semantic region map with these fields: label, binary mask, importance score, and rendering policy.
+
+This allows text, line art, and natural-image areas to use different tactile rendering strategies.
