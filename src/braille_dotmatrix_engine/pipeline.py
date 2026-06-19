@@ -11,9 +11,10 @@ from .metrics import compute_quality_metrics
 from .preprocess import apply_clahe_lab
 from .raster import physical_compliance_check, raster_roundtrip_check, render_braille_png
 from .sampling import build_dot_grid, process_tiles
-from .tactile import geometry_report
+from .tactile import geometry_report, validate_tactile_output
 from .vector import export_svg
 from .braille_unicode import braille_matrix_to_text, encode_to_braille_matrix, unicode_roundtrip_test
+
 
 def create_demo_image(path='test_input.png', size=512):
     arr = np.zeros((size, size, 3), dtype=np.uint8)
@@ -27,10 +28,12 @@ def create_demo_image(path='test_input.png', size=512):
     image.save(path)
     return str(path)
 
+
 def _prepare_outputs(*paths):
     for path in paths:
         if path is not None:
             Path(path).parent.mkdir(parents=True, exist_ok=True)
+
 
 def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.png', output_txt='output_braille.txt', report_json='render_report.json', output_svg=None):
     start = time.time()
@@ -47,6 +50,9 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
         values = 1.0 - values
     method, binary = select_best_dither(values, cfg.dither_candidates)
     binary = correct_over_dense_regions(binary, cfg)
+    tactile_validation = validate_tactile_output(binary, cfg)
+    if cfg.mode == 'TACTILE' and bool(getattr(cfg, 'strict_tactile_validation', False)) and not tactile_validation['compliant']:
+        raise ValueError('tactile validation failed: ' + json.dumps(tactile_validation['issues'], ensure_ascii=False))
     quality = compute_quality_metrics(values, binary, cfg)
     text = braille_matrix_to_text(encode_to_braille_matrix(binary))
     Path(output_txt).write_text(text, encoding='utf-8')
@@ -54,7 +60,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     svg_report = export_svg(binary, cfg, output_svg) if output_svg is not None else None
     raster_check = raster_roundtrip_check(binary, output_png, cfg) if cfg.mode == 'TACTILE' else {'ok': None, 'skipped': 'screen mode uses antialias/glow'}
     report = {
-        'schema_version': '1.3',
+        'schema_version': '1.5',
         'image_shape': [h, w],
         'dots_shape': [dy, dx],
         'cells_shape': [dy//4, dx//2],
@@ -69,6 +75,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
         'validation': {
             'unicode_roundtrip': unicode_roundtrip_test(),
             'physical_compliance': physical_compliance_check(binary, cfg),
+            'tactile_output': tactile_validation,
             'raster_roundtrip': raster_check,
         },
         'config': asdict(cfg),

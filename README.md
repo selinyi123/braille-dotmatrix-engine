@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice, maps each 4x2 dot b
 
 ## Current version
 
-`v1.4.0`
+`v1.5.0`
 
 ## Status
 
@@ -19,6 +19,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - tactile and screen rendering modes
 - PNG, TXT, JSON report, and optional SVG export
 - deterministic seed path for density correction
+- tactile output validation for spacing, active-dot collisions, and occupancy
 - CI test scaffold
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
@@ -47,6 +48,12 @@ braille-dotmatrix input.png \
   --output-txt artifacts/output_braille.txt \
   --report-json artifacts/render_report.json \
   --output-svg artifacts/output_braille.svg
+```
+
+Strict tactile validation mode:
+
+```bash
+braille-dotmatrix input.png --mode TACTILE --strict-tactile
 ```
 
 Screen preview mode:
@@ -113,6 +120,7 @@ Current validation includes:
 
 - exhaustive 256-pattern Unicode roundtrip
 - physical spacing and safety-gap report
+- active-dot collision report
 - raster roundtrip check for tactile PNG mode
 - occupancy and local-density metrics
 - deterministic density correction using `np.random.default_rng(seed)`

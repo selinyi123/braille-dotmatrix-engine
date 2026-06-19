@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5.0
+
+### Added
+
+- Added tactile output validation report for dot spacing, edge gap, active-dot collisions, dot count, and occupancy.
+- Added `--strict-tactile` CLI flag to fail tactile-mode export when validation reports errors.
+- Added tactile validation output under `validation.tactile_output` in `render_report.json`.
+- Added tactile validation regression tests.
+
+### Changed
+
+- Updated render report schema version to `1.5`.
+- Bumped package version to `1.5.0`.
+- Updated README with strict tactile validation usage.
+
 ## v1.4.0
 
 ### Fixed
