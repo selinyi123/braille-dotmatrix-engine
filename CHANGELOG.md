@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.7.1
+
+### Added
+
+- Added the `CHROMATIC` screen rendering backend for colored Gaussian dot-matrix output.
+- Added chromatic configuration fields and wired them into the renderer instead of leaving unused public knobs.
+- Added `benchmark.py` with smoke benchmarks for tactile and chromatic rendering.
+- Added `--benchmark` and `--benchmark-csv` CLI options.
+- Added tests for chromatic rendering, benchmark CSV output, and CLI smoke paths.
+
+### Changed
+
+- Updated render report schema to `1.7`.
+- Updated package version to `1.7.1`.
+- Switched error diffusion to serpentine scanning to reduce directional artifacts.
+- Updated documentation and the v2 roadmap.
+
 ## v1.5.0
 
 ### Added
@@ -30,7 +47,3 @@
 - Added `ROADMAP.md` for V1.4 through V3.0 planning.
 - Added `docs/CODE_AUDIT.md` with fixed findings and remaining risks.
 - Expanded project design documentation.
-
-### Notes
-
-This release branch focuses on correctness and project foundation rather than adding large new rendering features.
