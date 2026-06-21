@@ -3,9 +3,12 @@ import pytest
 from braille_dotmatrix_engine import (
     GenericEmbosserProfile,
     assert_embosser_profile,
+    build_embosser_profile,
     embosser_capacity,
     embosser_encoding_family,
     embosser_export_manifest,
+    embosser_profile_names,
+    get_embosser_profile_preset,
     validate_embosser_profile,
 )
 from braille_dotmatrix_engine.schema import PACKAGE_VERSION
@@ -34,12 +37,41 @@ def test_generic_embosser_capacity_report():
 def test_embosser_manifest_for_six_dot_text_export():
     profile = GenericEmbosserProfile(name='six-dot')
     manifest = embosser_export_manifest(profile, output_path='out.brf', source_artifact='out.txt')
-    assert PACKAGE_VERSION == '1.16.0'
+    assert PACKAGE_VERSION == '1.17.0'
     assert manifest['ok'] is True
     assert manifest['encoding_family'] == 'BRF_OR_BRAILLE_ASCII'
     assert manifest['portable_text_export'] is True
     assert manifest['device_driver_required'] is False
     assert manifest['output_path'] == 'out.brf'
+
+
+def test_profile_preset_names_are_stable():
+    names = embosser_profile_names()
+    assert 'a4-40x25' in names
+    assert 'letter-40x25' in names
+    assert 'portable-34x25' in names
+
+
+def test_profile_preset_capacity():
+    profile = get_embosser_profile_preset('a4-40x25')
+    capacity = embosser_capacity(profile)
+    assert capacity['profile'] == 'a4-40x25'
+    assert capacity['cols'] == 40
+    assert capacity['rows'] == 25
+    assert capacity['cells_per_page'] == 1000
+
+
+def test_profile_preset_override_capacity():
+    profile = build_embosser_profile('letter-40x25', max_cols=32, max_rows=12)
+    capacity = embosser_capacity(profile)
+    assert profile.name == 'letter-40x25+override'
+    assert capacity['cols'] == 32
+    assert capacity['rows'] == 12
+
+
+def test_unknown_profile_preset_is_rejected():
+    with pytest.raises(ValueError):
+        get_embosser_profile_preset('unknown-profile')
 
 
 def test_graphics_mode_requires_driver_boundary():
