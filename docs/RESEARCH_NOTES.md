@@ -71,6 +71,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: renderer strategy is the correct next architectural step. TACTILE, SCREEN, CHROMATIC, ASCII, future accessible SVG, and future embosser export all require different output policies. A registry-based renderer layer keeps `process_image()` stable while new output families are added.
 
+### 7. v1.12.0 research pass: artifact manifests and interactive tactile outputs
+
+New sources reviewed for this pass:
+
+- TactileNet: AI-generated tactile graphics dataset and framework; useful for future semantic/tactile quality scoring rather than a direct V1 dependency.
+- TactIcons: 3D printed tactile map icons; useful for future symbol libraries and tactile legend artifacts.
+- FluxMarker: dynamic tactile markers layered on static tactile graphics; useful as evidence that static tactile exports may need companion metadata for interaction or annotation.
+- SVG format references: SVG is text/XML-based and open, reinforcing the need for explicit MIME/type/role metadata in artifact reports.
+- Stack Overflow, Lobsters, TCS Stack Exchange, Reddit, X/Twitter, Zhihu, and hackathon searches did not surface a stronger direct component than the report/artifact split already planned.
+
+Assessment for this repository: artifact metadata should be explicit, not inferred from file extensions or renderer mode. A dedicated artifact manifest makes future tactile SVG, embosser, interactive marker overlays, and semantic report outputs easier to audit and test.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -81,4 +93,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 4. dot-density and collision validation,
 5. segmentation-assisted tactile policy,
 6. fast raster/vector backends,
-7. benchmark datasets for tactile graphics.
+7. benchmark datasets for tactile graphics,
+8. artifact manifests and interactive tactile metadata.

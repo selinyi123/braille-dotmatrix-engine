@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.11.0`
+`v1.12.0`
 
 ## Status
 
@@ -20,6 +20,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - serpentine error-diffusion dithering
 - tactile, screen, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR` rendering modes
 - renderer strategy runtime for mode-specific output behavior
+- artifact manifest and report adapter layer
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - PNG, TXT, JSON report, optional SVG/HTML export, and benchmark CSV output
 - dedicated benchmark smoke job with uploaded benchmark artifacts
@@ -30,13 +31,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.11.0 renderer-strategy notes
+### v1.12.0 report-and-artifact notes
 
-- `process_image()` is now an orchestration layer: validate config, prepare outputs, load image, select renderer, write report.
-- Mode-specific behavior lives under `src/braille_dotmatrix_engine/renderers/`.
-- Public renderer strategies currently cover `TACTILE`, `SCREEN`, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR`.
-- Reports include `renderer.strategy` so callers can verify the selected runtime path.
-- This prepares the project for future semantic/chart/tactile-SVG renderers without continuing to expand one monolithic pipeline function.
+- Render reports now include `artifact_manifest` with path, kind, role, MIME type, and file-existence diagnostics.
+- Legacy `artifacts` path fields are preserved for compatibility.
+- `pipeline.py` delegates artifact directory preparation to `artifacts.py`.
+- `pipeline.py` delegates base report creation and compatibility adaptation to `reports.py`.
+- Render schema is bumped to `1.10` because report structure now includes the artifact manifest.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -146,6 +147,8 @@ report = process_image(
     report_json="artifacts/render_report.json",
     output_html="artifacts/output.html",
 )
+
+print(report["artifact_manifest"]["png"])
 ```
 
 Attach Braille diagnostics to ASCII output when needed:
@@ -197,7 +200,7 @@ This means every 4x2 physical dot block can be encoded into one Unicode Braille 
 | `.txt` | copyable Unicode Braille or ASCII art text |
 | `.ansi` | ANSI-colored ASCII text |
 | `.html` | browser-previewable ASCII art using monospace layout |
-| `.json` | render report, metrics, validation status, config, Braille/ASCII quality diagnostics |
+| `.json` | render report, metrics, validation status, config, Braille/ASCII quality diagnostics, and artifact manifest |
 | `.svg` | physical millimeter-space tactile vector export |
 | `.csv` | benchmark runtime / memory / quality table |
 
@@ -209,7 +212,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details.
+A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract.
 
 ## Validation, quality, and benchmark layer
 
@@ -223,6 +226,7 @@ Current validation and quality reporting includes:
 - Braille density target control
 - Braille tile seam diagnostics
 - ASCII tone score, edge score, charset preset, PNG preview, and HTML availability
+- artifact manifest with path, kind, role, MIME, and existence diagnostics
 - benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 

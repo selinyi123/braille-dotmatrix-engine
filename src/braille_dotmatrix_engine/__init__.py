@@ -2,10 +2,12 @@ from .config import BrailleArtConfig, MaterialProfile, PrinterProfile, TactileGe
 from .pipeline import create_demo_image, process_image
 from .chromatic import build_chromatic_array, render_chromatic_png
 from .ascii_backend import ASCII_PRESETS, render_ascii_html, render_ascii_png, render_ascii_text, resolve_ascii_charset, write_ascii_output
+from .artifacts import artifact_manifest, legacy_artifact_paths, prepare_artifact_dirs
 from .braille_enhance import enhance_sampled_values
 from .braille_quality import analyze_braille_quality, apply_density_control
 from .geometry import compensated_dot_radius_mm, dot_radius_report
 from .renderers import RenderContext, RenderResult, get_renderer, renderer_names
+from .reports import adapt_render_report, base_render_report
 from .schema import BENCHMARK_SCHEMA_VERSION, PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 from .validation import VALID_DITHER_METHODS, VALID_RENDER_MODES, validate_config
 from .braille_unicode import (
@@ -36,6 +38,9 @@ __all__ = [
     'render_ascii_html',
     'render_ascii_png',
     'write_ascii_output',
+    'artifact_manifest',
+    'legacy_artifact_paths',
+    'prepare_artifact_dirs',
     'enhance_sampled_values',
     'apply_density_control',
     'analyze_braille_quality',
@@ -45,6 +50,8 @@ __all__ = [
     'RenderResult',
     'get_renderer',
     'renderer_names',
+    'adapt_render_report',
+    'base_render_report',
     'PACKAGE_VERSION',
     'RENDER_SCHEMA_VERSION',
     'BENCHMARK_SCHEMA_VERSION',
