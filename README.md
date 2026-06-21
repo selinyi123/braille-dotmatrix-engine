@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.15.0`
+`v1.16.0`
 
 ## Status
 
@@ -23,10 +23,11 @@ This repository is currently in the **V1 engineering prototype** stage:
 - artifact manifest and report adapter layer
 - generic embosser export boundary for page/device capacity metadata
 - conservative six-dot BRF-like text export with compatibility diagnostics
+- CLI-level BRF artifact integration and report JSON update path
 - benchmark profiles for smoke, medium, and stress image sizes
 - benchmark memory estimates and artifact-size reporting
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
-- PNG, TXT, JSON report, optional SVG/HTML export, and benchmark CSV output
+- PNG, TXT, JSON report, optional SVG/HTML/BRF export, and benchmark CSV output
 - dedicated benchmark smoke job with uploaded benchmark artifacts
 - centralized render/benchmark schema constants
 - centralized configuration validation before rendering
@@ -35,13 +36,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.15.0 six-dot text export notes
+### v1.16.0 BRF artifact integration notes
 
-- Added `unicode_braille_to_brf_text()` for conservative six-dot Unicode Braille to Braille ASCII / BRF-like text export.
-- Added `write_brf_text()` for ASCII-safe `.brf` artifact writing.
-- Export uses `GenericEmbosserProfile` capacity metadata to wrap lines and paginate with form-feed separators.
-- Dots 7 and 8 are reported as unsupported instead of being silently dropped.
-- Non-Braille characters are reported with line, column, codepoint, and reason diagnostics.
+- Added `brf` to the artifact manifest contract and bumped render schema to `1.11`.
+- Added CLI flags: `--output-brf`, `--brf-cols`, and `--brf-rows`.
+- CLI BRF export runs after normal rendering by reading the generated text artifact.
+- CLI output report JSON is updated with `brf_export`, `artifacts['brf']`, and `artifact_manifest['brf']`.
+- Renderer semantics remain unchanged; BRF stays a pipeline-adjacent artifact rather than a new renderer mode.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -70,6 +71,20 @@ braille-dotmatrix input.png \
   --output-txt artifacts/output_braille.txt \
   --report-json artifacts/render_report.json \
   --output-svg artifacts/output_braille.svg
+```
+
+Render tactile mode and add a BRF-like artifact:
+
+```bash
+braille-dotmatrix input.png \
+  --width-cells 100 \
+  --mode TACTILE \
+  --output-png artifacts/output_braille.png \
+  --output-txt artifacts/output_braille.txt \
+  --output-brf artifacts/output_braille.brf \
+  --brf-cols 40 \
+  --brf-rows 25 \
+  --report-json artifacts/render_report.json
 ```
 
 Render ASCII art:
@@ -247,7 +262,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API. `v1.15.0` also keeps existing schemas stable because BRF-like export is a standalone API and does not alter render reports or benchmark rows.
+A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API. `v1.15.0` also keeps existing schemas stable because BRF-like export is a standalone API and does not alter render reports or benchmark rows. `v1.16.0` bumps the render schema to `1.11` because `brf` is now part of `artifact_manifest` and CLI reports can include `brf_export`.
 
 ## Validation, quality, and benchmark layer
 
