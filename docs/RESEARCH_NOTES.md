@@ -95,6 +95,19 @@ New sources reviewed for this pass:
 
 Assessment for this repository: benchmark artifacts should capture input scale, memory estimates, observed RSS, and output size. This is enough for V1 engineering control without prematurely introducing heavyweight profiling dependencies.
 
+### 9. v1.14.0 research pass: embosser boundary and device export separation
+
+New sources reviewed for this pass:
+
+- Braille ASCII / BRF references: six-dot Braille ASCII remains a practical portable text route for many embossing workflows.
+- Braille embosser references: embossers can be single-sided or interpoint, and may support 6-dot or 8-dot Braille.
+- Unicode Braille references: Unicode covers 6-dot and 8-dot binary appearance, while many embossers still rely on Braille ASCII or device controls.
+- Graphics-mode references: some embossers can place dots more freely for diagrams, but these modes are device-specific and not standardized.
+- GitHub search found `braillerap/DesktopBrailleRAP` as an open physical embosser/tactile graphics project and `liblouis/liblouis` as the major open-source Braille translation engine.
+- Stack Overflow, Lobsters, Reddit, X/Twitter, Zhihu, hackathon, and TCS Stack Exchange searches did not reveal a stronger direct component than adding a neutral export boundary before device-specific exporters.
+
+Assessment for this repository: do not hard-code any single embosser workflow yet. Add a generic embosser profile and export manifest first, then build real BRF or device-specific exporters in later releases.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -107,4 +120,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 6. fast raster/vector backends,
 7. benchmark datasets for tactile graphics,
 8. artifact manifests and interactive tactile metadata,
-9. benchmark profiles, memory models, and artifact-size accounting.
+9. benchmark profiles, memory models, and artifact-size accounting,
+10. embosser page profiles, BRF export, and device-specific graphics modes.

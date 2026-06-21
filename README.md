@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.13.0`
+`v1.14.0`
 
 ## Status
 
@@ -21,6 +21,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - tactile, screen, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR` rendering modes
 - renderer strategy runtime for mode-specific output behavior
 - artifact manifest and report adapter layer
+- generic embosser export boundary for page/device capacity metadata
 - benchmark profiles for smoke, medium, and stress image sizes
 - benchmark memory estimates and artifact-size reporting
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
@@ -33,14 +34,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.13.0 benchmark-and-memory notes
+### v1.14.0 embosser-export notes
 
-- The benchmark module now supports `smoke`, `medium`, and `stress` profiles.
-- The `medium` profile includes 720p and 1080p synthetic images.
-- The `stress` profile includes a 4K synthetic image and remains opt-in.
-- Benchmark rows include input pixels, megapixels, estimated input memory, estimated working-set memory, and per-artifact byte sizes.
-- Benchmark summary JSON now aggregates profiles, maximum estimated working set, and total artifact bytes.
-- Benchmark schema is bumped to `1.11`.
+- Added `GenericEmbosserProfile` for page size, margins, cell dimensions, dot pitch, DPI, and device capability metadata.
+- Added `embosser_capacity()` to compute printable area, rows, columns, and cells per page.
+- Added `embosser_export_manifest()` to describe the intended output boundary without hard-coding a vendor driver.
+- Six-dot profiles are marked as portable text export candidates for BRF / Braille ASCII style workflows.
+- Eight-dot and graphics-mode profiles remain explicitly separated because many devices require proprietary control codes or device-specific graphics mode.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -181,6 +181,16 @@ print(renderer_names())
 print(type(get_renderer("TACTILE")).__name__)
 ```
 
+Inspect generic embosser capacity:
+
+```python
+from braille_dotmatrix_engine import GenericEmbosserProfile, embosser_capacity, embosser_export_manifest
+
+profile = GenericEmbosserProfile(name="a4-six-dot")
+print(embosser_capacity(profile))
+print(embosser_export_manifest(profile, output_path="out.brf", source_artifact="output.txt"))
+```
+
 ## Unicode Braille mapping
 
 The engine uses the official physical 8-dot Braille layout:
@@ -214,6 +224,7 @@ This means every 4x2 physical dot block can be encoded into one Unicode Braille 
 | `.json` | render report, metrics, validation status, config, Braille/ASCII quality diagnostics, and artifact manifest |
 | `.svg` | physical millimeter-space tactile vector export |
 | `.csv` | benchmark runtime / memory / quality table |
+| `.brf` | future six-dot Braille ASCII / BRF-style text export target |
 
 ## Version and schema policy
 
@@ -223,7 +234,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields.
+A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API.
 
 ## Validation, quality, and benchmark layer
 
@@ -238,6 +249,7 @@ Current validation and quality reporting includes:
 - Braille tile seam diagnostics
 - ASCII tone score, edge score, charset preset, PNG preview, and HTML availability
 - artifact manifest with path, kind, role, MIME, and existence diagnostics
+- generic embosser capacity and export-boundary validation
 - benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, memory-estimate, artifact-size, profile, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 

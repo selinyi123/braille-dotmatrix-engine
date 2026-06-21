@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-PACKAGE_VERSION = "1.13.0"
+PACKAGE_VERSION = "1.14.0"
 RENDER_SCHEMA_VERSION = "1.10"
 BENCHMARK_SCHEMA_VERSION = "1.11"
 
