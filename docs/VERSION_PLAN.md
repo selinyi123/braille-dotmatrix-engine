@@ -62,7 +62,7 @@ Acceptance:
 
 ## v1.12.0 — Report adapter and artifact manifest
 
-Status: implemented in `feat/v1.12.0-report-artifacts`.
+Status: merged to `main`.
 
 Goals:
 
@@ -82,18 +82,38 @@ Acceptance:
 
 ## v1.13.0 — Large-image benchmark and memory reporting
 
+Status: implemented in `feat/v1.13.0-benchmark-memory`.
+
 Goals:
 
-- add synthetic 1080p and 4K benchmark profiles,
-- add estimated peak-memory report,
-- add optional stress benchmark profile for 8K images,
-- compare tiled sampling behavior across image sizes.
+- add benchmark profiles for smoke, medium, and stress image sizes,
+- include 720p and 1080p synthetic benchmark cases in the medium profile,
+- include opt-in 4K stress benchmark case,
+- add input-pixel, megapixel, memory-estimate, and artifact-size fields,
+- bump benchmark schema to `1.11`.
 
 Acceptance:
 
-- medium benchmark runs in CI or scheduled benchmark workflow,
-- stress benchmark is available but not mandatory in PR CI,
-- render report includes memory-estimate fields.
+- PR CI continues to run the smoke profile,
+- medium and stress profiles are available from the benchmark CLI,
+- benchmark CSV includes memory-estimate and artifact-size fields,
+- benchmark summary includes max estimated working set and total artifact bytes,
+- validation checks benchmark schema compatibility.
+
+## v1.14.0 — Embosser and tactile device export boundary
+
+Goals:
+
+- introduce an embosser/exporter abstraction separate from the tactile renderer,
+- represent 6-dot, 8-dot, and graphics-mode output policies,
+- add page layout metadata: paper size, margins, DPI, dot pitch, and row/column limits,
+- research SVG-to-embosser and BrailleRAP-style output paths.
+
+Acceptance:
+
+- device export remains optional and does not pollute renderer core,
+- report artifacts can describe page/device metadata,
+- tests cover at least one generic embosser profile.
 
 ## v2.0.0 — Semantic Braille Engine
 
