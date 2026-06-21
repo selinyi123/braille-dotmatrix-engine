@@ -156,6 +156,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: keep BRF export local and deterministic. Add warning/error severity, reason grouping, and strict mode. Do not introduce a translator dependency or live device API yet.
 
+### 14. v1.19.0 research pass: BRF report ergonomics
+
+New sources reviewed for this pass:
+
+- Braille ASCII references: BRF is still a plain text artifact that can be inspected and distributed, so user-facing diagnostics should be concise enough for CI logs.
+- BRF distribution references: BRF files are often distributed as finished artifacts, which supports adding validation-only workflows before writing final files.
+- BrlAPI references: live device output remains a separate layer; report ergonomics should stay in offline artifact/report code.
+- GitHub searches for BRF CLI diagnostics did not reveal a reusable component that improves on the existing local report structure.
+- Hacker News, Medium, LinkedIn, Reddit, X/Twitter, Zhihu, Stack Overflow, Lobsters, hackathon, and TCS Stack Exchange searches did not surface a stronger approach than compact summaries plus JSON-only validation.
+
+Assessment for this repository: add a compact summary string and a validation-only CLI mode. This makes BRF diagnostics easier to use in CI and scripts without introducing a device API or translation dependency.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -173,4 +185,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 11. BRF pagination, six-dot compatibility diagnostics, and optional translator integration,
 12. BRF artifact/report contracts and CLI ergonomics,
 13. embosser profile presets, page-size capacity defaults, and profile override ergonomics,
-14. BRF diagnostic severity, strict export policy, and reason-grouped report contracts.
+14. BRF diagnostic severity, strict export policy, and reason-grouped report contracts,
+15. compact BRF summaries, validation-only report mode, and CI-friendly report ergonomics.
