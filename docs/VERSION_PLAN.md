@@ -2,7 +2,7 @@
 
 ## v1.10.2 — Hardening release
 
-Status: implemented in `fix/v1.10.2-hardening`.
+Status: merged to `main`.
 
 Goals:
 
@@ -22,18 +22,23 @@ Acceptance:
 
 ## v1.10.3 — Mode-specific pipeline semantics
 
+Status: implemented in `feat/v1.10.3-mode-semantics`.
+
 Goals:
 
 - split ASCII mode into a fast path that does not require full Braille diagnostics by default,
+- keep optional Braille diagnostics for ASCII through `include_braille_diagnostics=True`,
 - split CHROMATIC report semantics from tactile-only roundtrip validation,
-- add explicit report sections: `input`, `renderer`, `artifacts`, `validation`, `diagnostics`,
+- add explicit report sections: `renderer`, `artifacts`, and `diagnostics`,
 - keep backward-compatible top-level fields for one minor cycle.
 
 Acceptance:
 
-- ASCII mode can render without Braille dither unless diagnostics are enabled,
+- ASCII mode renders without Braille dither unless diagnostics are enabled,
 - report clearly marks skipped diagnostics,
-- benchmark includes at least one 1080p synthetic image.
+- ASCII reports keep `ascii_render` and quality metrics,
+- CHROMATIC reports show tactile raster roundtrip as skipped,
+- existing benchmark smoke workflow remains green.
 
 ## v1.11.0 — Renderer strategy architecture
 
@@ -42,13 +47,15 @@ Goals:
 - introduce renderer strategy classes for TACTILE, SCREEN, CHROMATIC, ASCII_MONO, and ASCII_COLOR,
 - add shared artifact writer,
 - isolate geometry policy from renderer code,
-- prepare a stable `RenderContext` and `RenderResult` internal API.
+- prepare a stable `RenderContext` and `RenderResult` internal API,
+- move legacy compatibility fields into a report adapter.
 
 Acceptance:
 
 - `process_image` becomes orchestration rather than per-mode branching,
 - each renderer has independent unit tests,
-- output artifacts remain compatible with v1.10 reports.
+- output artifacts remain compatible with v1.10 reports,
+- adding a new renderer no longer requires editing the core pipeline body.
 
 ## v1.12.0 — Large-image benchmark and memory reporting
 
