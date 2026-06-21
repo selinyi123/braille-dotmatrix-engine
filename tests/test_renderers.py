@@ -20,7 +20,7 @@ def test_tactile_process_image_reports_renderer_strategy(tmp_path):
         tmp_path / 'out.txt',
         tmp_path / 'report.json',
     )
-    assert report['package_version'] == '1.16.0'
+    assert report['package_version'] == '1.17.0'
     assert report['schema_version'] == '1.11'
     assert report['renderer']['strategy'] == 'TactileRenderer'
     assert report['renderer']['braille_pipeline_executed'] is True
