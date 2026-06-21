@@ -28,3 +28,48 @@ def test_cli_validation_only_report(tmp_path):
     assert report['brf_export']['validate_only'] is True
     assert report['brf_export']['bytes'] == 0
     assert report['brf_export']['summary'].startswith('BRF ')
+
+
+def test_cli_brf_preflight_skips_image_render(tmp_path):
+    source = tmp_path / 'source.txt'
+    source.write_text('⠁⠃⠉', encoding='utf-8')
+    report_json = tmp_path / 'preflight.json'
+
+    rc = main([
+        '--brf-preflight', str(source),
+        '--brf-profile', 'portable-34x25',
+        '--brf-cols', '12',
+        '--brf-rows', '5',
+        '--report-json', str(report_json),
+    ])
+
+    assert rc == 0
+    assert report_json.exists()
+    assert not (tmp_path / 'output_braille.png').exists()
+    report = json.loads(report_json.read_text(encoding='utf-8'))
+    assert report['mode'] == 'BRF_PREFLIGHT'
+    assert report['renderer']['braille_pipeline_executed'] is False
+    assert report['artifact_manifest']['txt']['path'].endswith('source.txt')
+    assert report['artifact_manifest']['png']['path'] is None
+    assert report['artifact_manifest']['brf']['path'] is None
+    assert report['brf_export']['validate_only'] is True
+    assert report['brf_export']['summary'].startswith('BRF ok;')
+
+
+def test_cli_brf_preflight_strict_reports_exit_code(tmp_path):
+    source = tmp_path / 'source.txt'
+    source.write_text('A', encoding='utf-8')
+    report_json = tmp_path / 'preflight.json'
+
+    rc = main([
+        '--brf-preflight', str(source),
+        '--strict-brf',
+        '--report-json', str(report_json),
+    ])
+
+    assert rc == 2
+    report = json.loads(report_json.read_text(encoding='utf-8'))
+    assert report['mode'] == 'BRF_PREFLIGHT'
+    assert report['brf_export']['validate_only'] is True
+    assert report['brf_export']['diagnostics']['total'] == 1
+    assert report['brf_export']['summary'].startswith('BRF issues;')

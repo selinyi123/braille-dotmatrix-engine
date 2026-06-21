@@ -196,7 +196,7 @@ Acceptance:
 
 ## v1.19.0 — BRF report ergonomics
 
-Status: implemented in `work-20260621-c`.
+Status: merged to `main`.
 
 Goals:
 
@@ -215,18 +215,37 @@ Acceptance:
 
 ## v1.20.0 — BRF preflight input mode
 
+Status: implemented in `work-20260621-d`.
+
 Goals:
 
 - validate an existing Unicode Braille text file without rendering an image,
-- support a dedicated BRF validation command path,
+- support a dedicated BRF preflight command path,
 - emit JSON report and compact summary from a text-only input,
-- keep render pipeline and text validation pipeline separate.
+- keep render pipeline and text validation pipeline separate,
+- keep render schema stable at `1.11`.
 
 Acceptance:
 
 - users can validate BRF compatibility before image processing,
-- text-only validation does not write PNG artifacts,
-- strict and non-strict results are deterministic and scriptable.
+- text-only validation skips the image renderer,
+- strict and non-strict results are deterministic and scriptable,
+- preflight reports preserve source TXT and report JSON artifacts.
+
+## v1.21.0 — BRF fixture and report examples
+
+Goals:
+
+- add example Unicode Braille TXT fixtures,
+- add valid six-dot, eight-dot error, and non-Braille warning examples,
+- add strict and non-strict report snapshots,
+- document release/preflight workflow.
+
+Acceptance:
+
+- examples can be validated through CLI preflight,
+- report snapshots are stable enough for regression tests,
+- docs show expected summaries for common BRF states.
 
 ## v2.0.0 — Semantic Braille Engine
 

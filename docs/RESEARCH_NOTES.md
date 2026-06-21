@@ -168,6 +168,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: add a compact summary string and a validation-only CLI mode. This makes BRF diagnostics easier to use in CI and scripts without introducing a device API or translation dependency.
 
+### 15. v1.20.0 research pass: BRF preflight input mode
+
+New sources reviewed for this pass:
+
+- Braille ASCII references: BRF is plain Braille ASCII with line and page controls, so validation can operate directly on Unicode Braille text before a BRF file is written.
+- Unicode Braille references: Unicode includes the full 8-dot range, so a preflight mode should catch 8-dot cells before artifact distribution.
+- BrlAPI references: direct device control remains a separate abstraction; text preflight belongs in CLI/report code, not device code.
+- GitHub searches for BRF validators and command-line BRF preflight tools did not reveal a project-specific reusable validator that supersedes this repository's local six-dot validation.
+- Hacker News, Medium, LinkedIn, Reddit, X/Twitter, Zhihu, Stack Overflow, Lobsters, hackathon, and TCS Stack Exchange searches did not surface a better fit than a dedicated text-input preflight path.
+
+Assessment for this repository: add a `--brf-preflight` CLI path that validates an existing Unicode Braille TXT file without running image rendering. This supports CI and release workflows where the text artifact already exists.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -186,4 +198,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 12. BRF artifact/report contracts and CLI ergonomics,
 13. embosser profile presets, page-size capacity defaults, and profile override ergonomics,
 14. BRF diagnostic severity, strict export policy, and reason-grouped report contracts,
-15. compact BRF summaries, validation-only report mode, and CI-friendly report ergonomics.
+15. compact BRF summaries, validation-only report mode, and CI-friendly report ergonomics,
+16. text-input BRF preflight workflows and pre-distribution artifact validation.

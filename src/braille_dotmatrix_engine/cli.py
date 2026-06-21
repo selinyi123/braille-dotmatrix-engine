@@ -5,6 +5,7 @@ from .engine import BrailleArtConfig, create_demo_image, process_image
 from .benchmark import run_benchmark_suite, write_benchmark_csv
 from .brf import BrfExportError, attach_brf_artifact_to_report, validate_brf_text, write_brf_text
 from .embosser import build_embosser_profile, embosser_profile_names
+from .schema import PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 
 BRF_COMPATIBLE_MODES = {"TACTILE", "SCREEN", "CHROMATIC"}
 
@@ -24,6 +25,7 @@ def _unit_float(value: str) -> float:
 
 
 def _write_report_json(report: dict, report_json: str) -> None:
+    Path(report_json).parent.mkdir(parents=True, exist_ok=True)
     Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
 
 
@@ -31,6 +33,44 @@ def _validate_brf_mode(parser: argparse.ArgumentParser, mode: str, output_brf: s
     if (output_brf is not None or validate_only) and mode not in BRF_COMPATIBLE_MODES:
         allowed = ', '.join(sorted(BRF_COMPATIBLE_MODES))
         parser.error(f'BRF output requires a Braille-backed mode: {allowed}')
+
+
+def _run_brf_preflight(args) -> int:
+    source_path = Path(args.brf_preflight)
+    profile = build_embosser_profile(args.brf_profile, max_cols=args.brf_cols, max_rows=args.brf_rows)
+    source_text = source_path.read_text(encoding='utf-8')
+    brf_report = validate_brf_text(source_text, profile, strict=bool(args.strict_brf))
+    report = {
+        'package_version': PACKAGE_VERSION,
+        'schema_version': RENDER_SCHEMA_VERSION,
+        'mode': 'BRF_PREFLIGHT',
+        'renderer': {
+            'strategy': 'BrfPreflight',
+            'backend': 'BRF_TEXT',
+            'braille_pipeline_executed': False,
+        },
+        'diagnostics': {
+            'braille_pipeline': {
+                'executed': False,
+                'reason': 'text-only BRF preflight',
+            }
+        },
+    }
+    report = attach_brf_artifact_to_report(
+        report,
+        output_brf=None,
+        output_png=None,
+        output_txt=source_path,
+        report_json=args.report_json,
+        output_svg=None,
+        output_html=None,
+        brf_report=brf_report,
+    )
+    _write_report_json(report, args.report_json)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.brf_print_summary:
+        print(brf_report['summary'])
+    return 2 if args.strict_brf and brf_report['diagnostics']['total'] > 0 else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -49,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
     p.add_argument("--strict-brf", action="store_true", help="validate BRF diagnostics")
     p.add_argument("--brf-validate-only", action="store_true", help="add BRF diagnostics to the report without writing a BRF file")
+    p.add_argument("--brf-preflight", default=None, help="validate an existing Unicode Braille text file without rendering an image")
     p.add_argument("--brf-print-summary", action="store_true", help="print a compact BRF summary line after JSON output")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-invert", action="store_true")
@@ -67,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         write_benchmark_csv(rows, a.benchmark_csv)
         print(json.dumps({'benchmark_csv': a.benchmark_csv, 'rows': rows}, indent=2, ensure_ascii=False))
         return 0
+    if a.brf_preflight is not None:
+        return _run_brf_preflight(a)
     _validate_brf_mode(p, a.mode, a.output_brf, bool(a.brf_validate_only))
     for target in [a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html, a.output_brf]:
         if target is not None:
