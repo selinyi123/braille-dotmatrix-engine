@@ -121,7 +121,7 @@ Acceptance:
 
 ## v1.15.0 — BRF text export prototype
 
-Status: implemented in `feat/v1.15.0-brf-text-export`.
+Status: merged to `main`.
 
 Goals:
 
@@ -139,18 +139,37 @@ Acceptance:
 
 ## v1.16.0 — BRF artifact integration
 
+Status: implemented in `feat/v1.16.0-brf-artifact-integration`.
+
 Goals:
 
-- expose BRF export through CLI or pipeline-adjacent artifact helpers,
+- expose BRF export through CLI and pipeline-adjacent artifact helpers,
 - add report artifact manifest entries for BRF outputs,
-- support explicit page-width/page-height parameters through embosser profiles,
-- keep non-portable graphics-mode export separate.
+- support explicit BRF rows/columns parameters through embosser profiles,
+- keep non-portable graphics-mode export separate,
+- bump render schema to `1.11` for the BRF artifact manifest entry.
 
 Acceptance:
 
 - CLI can write a BRF-like artifact from compatible Braille text,
 - reports can reference BRF artifacts without changing renderer semantics,
-- diagnostics remain explicit for unsupported 8-dot cells.
+- diagnostics remain explicit for unsupported 8-dot cells,
+- tests cover CLI output, manifest entries, and report JSON updates.
+
+## v1.17.0 — Embosser profile presets
+
+Goals:
+
+- provide named page/profile presets for common layout targets,
+- support A4, Letter, and custom capacities,
+- add single-side/interpoint metadata to presets,
+- keep profile presets independent from vendor drivers.
+
+Acceptance:
+
+- callers can request a named profile without manually setting rows and columns,
+- reports preserve the selected profile name,
+- invalid profiles still fail fast.
 
 ## v2.0.0 — Semantic Braille Engine
 
