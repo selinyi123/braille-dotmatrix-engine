@@ -6,6 +6,8 @@ from .benchmark import run_benchmark_suite, write_benchmark_csv
 from .brf import BrfExportError, attach_brf_artifact_to_report, write_brf_text
 from .embosser import build_embosser_profile, embosser_profile_names
 
+BRF_COMPATIBLE_MODES = {"TACTILE", "SCREEN", "CHROMATIC"}
+
 
 def _positive_int(value: str) -> int:
     parsed = int(value)
@@ -25,6 +27,12 @@ def _write_report_json(report: dict, report_json: str) -> None:
     Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
 
 
+def _validate_brf_mode(parser: argparse.ArgumentParser, mode: str, output_brf: str | None) -> None:
+    if output_brf is not None and mode not in BRF_COMPATIBLE_MODES:
+        allowed = ', '.join(sorted(BRF_COMPATIBLE_MODES))
+        parser.error(f'--output-brf requires a Braille-backed mode: {allowed}')
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Unicode Braille and ASCII visual-symbol renderer")
     p.add_argument("image", nargs="?")
@@ -35,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--report-json", default="render_report.json")
     p.add_argument("--output-svg", default=None)
     p.add_argument("--output-html", default=None)
-    p.add_argument("--output-brf", default=None, help="optional six-dot Braille ASCII / BRF-like text artifact path")
+    p.add_argument("--output-brf", default=None, help="optional six-dot Braille ASCII / BRF-like text artifact path; requires TACTILE, SCREEN, or CHROMATIC mode")
     p.add_argument("--brf-profile", choices=embosser_profile_names(), default="a4-40x25", help="named BRF embosser profile preset")
     p.add_argument("--brf-cols", type=_positive_int, default=None, help="optional BRF cells per line override")
     p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
@@ -52,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--benchmark", action="store_true", help="run the benchmark suite instead of rendering one image")
     p.add_argument("--benchmark-csv", default="benchmark.csv")
     a = p.parse_args(argv)
+    _validate_brf_mode(p, a.mode, a.output_brf)
     if a.benchmark:
         rows = run_benchmark_suite(output_dir=Path(a.benchmark_csv).parent or Path('.'))
         write_benchmark_csv(rows, a.benchmark_csv)
