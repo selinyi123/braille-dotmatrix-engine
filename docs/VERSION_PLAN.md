@@ -82,7 +82,7 @@ Acceptance:
 
 ## v1.13.0 — Large-image benchmark and memory reporting
 
-Status: implemented in `feat/v1.13.0-benchmark-memory`.
+Status: merged to `main`.
 
 Goals:
 
@@ -102,18 +102,37 @@ Acceptance:
 
 ## v1.14.0 — Embosser and tactile device export boundary
 
+Status: implemented in `feat/v1.14.0-embosser-export`.
+
 Goals:
 
-- introduce an embosser/exporter abstraction separate from the tactile renderer,
-- represent 6-dot, 8-dot, and graphics-mode output policies,
+- introduce a generic embosser profile separate from the tactile renderer,
+- represent six-dot, eight-dot, and graphics-mode output policies,
 - add page layout metadata: paper size, margins, DPI, dot pitch, and row/column limits,
-- research SVG-to-embosser and BrailleRAP-style output paths.
+- expose a capacity report and export manifest before adding concrete device drivers,
+- document BRF/Braille ASCII, Unicode Braille, and graphics-mode boundaries.
 
 Acceptance:
 
 - device export remains optional and does not pollute renderer core,
-- report artifacts can describe page/device metadata,
-- tests cover at least one generic embosser profile.
+- generic profiles compute printable area and cells per page,
+- export manifests describe encoding family and whether a device driver is required,
+- tests cover generic six-dot export, graphics-mode export, and invalid profile validation.
+
+## v1.15.0 — BRF text export prototype
+
+Goals:
+
+- add a conservative six-dot BRF/Braille ASCII export path,
+- keep eight-dot and graphics mode separate from the portable text exporter,
+- add pagination by embosser profile capacity,
+- report incompatible cells and fallback behavior.
+
+Acceptance:
+
+- compatible Unicode Braille text can become a paginated plain text export,
+- incompatible cells are reported rather than silently changed,
+- tests cover pagination and diagnostics.
 
 ## v2.0.0 — Semantic Braille Engine
 
