@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.10.0
+
+### Added
+
+- Added a dedicated `benchmark-smoke` GitHub Actions job.
+- Added benchmark artifact upload for generated benchmark CSV, JSON reports, previews, and summary files.
+- Added `python -m braille_dotmatrix_engine.benchmark` as a benchmark smoke entry point.
+- Added benchmark threshold validation for runtime, RSS peak memory, occupancy, render schema version, and benchmark schema version.
+- Added benchmark summary JSON output.
+- Extended benchmark tests for validation, summary writing, and module execution.
+
+### Changed
+
+- Updated package version to `1.10.0`.
+- Kept render report schema at `1.9`; benchmark rows now include `benchmark_schema_version = 1.10`.
+- Expanded project positioning from quality-controlled rendering to CI-validated benchmarkable visual-symbol encoding.
+
 ## v1.9.0
 
 ### Added
