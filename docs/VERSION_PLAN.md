@@ -22,7 +22,7 @@ Acceptance:
 
 ## v1.10.3 — Mode-specific pipeline semantics
 
-Status: implemented in `feat/v1.10.3-mode-semantics`.
+Status: merged to `main`.
 
 Goals:
 
@@ -42,22 +42,41 @@ Acceptance:
 
 ## v1.11.0 — Renderer strategy architecture
 
+Status: implemented in `feat/v1.11.0-renderer-strategy`.
+
 Goals:
 
 - introduce renderer strategy classes for TACTILE, SCREEN, CHROMATIC, ASCII_MONO, and ASCII_COLOR,
-- add shared artifact writer,
-- isolate geometry policy from renderer code,
-- prepare a stable `RenderContext` and `RenderResult` internal API,
-- move legacy compatibility fields into a report adapter.
+- add `RenderContext` and `RenderResult` contracts,
+- add a renderer registry,
+- keep `process_image` as orchestration rather than a monolithic mode-branching function,
+- expose renderer strategy names in render reports.
 
 Acceptance:
 
-- `process_image` becomes orchestration rather than per-mode branching,
-- each renderer has independent unit tests,
+- `process_image` validates config, prepares outputs, loads image, selects renderer, writes report,
+- each public mode resolves through `get_renderer`,
+- renderer strategy is visible in `report["renderer"]["strategy"]`,
 - output artifacts remain compatible with v1.10 reports,
-- adding a new renderer no longer requires editing the core pipeline body.
+- adding a new renderer can be done through the registry and renderer package instead of editing core orchestration.
 
-## v1.12.0 — Large-image benchmark and memory reporting
+## v1.12.0 — Report adapter and artifact writer
+
+Goals:
+
+- introduce `ReportBuilder` or `ReportAdapter` for legacy top-level compatibility fields,
+- introduce `ArtifactWriter` for path management and output manifest generation,
+- centralize output path semantics for PNG, TXT, SVG, HTML, JSON, and benchmark artifacts,
+- prepare optional schema version bump after compatibility audit.
+
+Acceptance:
+
+- renderers return renderer-native reports,
+- legacy top-level report fields are generated in one adapter,
+- artifact path fields are normalized and tested,
+- report schema compatibility is explicitly documented.
+
+## v1.13.0 — Large-image benchmark and memory reporting
 
 Goals:
 

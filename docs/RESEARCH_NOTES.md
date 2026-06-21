@@ -59,6 +59,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: `v1.10.3` should separate renderer semantics from diagnostics. ASCII previews, chromatic previews, tactile dot exports, and future accessible SVGs are different renderer outputs. Running every output through one Braille-heavy pipeline creates misleading reports and wastes runtime. This motivates the current ASCII fast path and structured report sections.
 
+### 6. v1.11.0 research pass: renderer architecture and vector-output substrate
+
+New sources reviewed for this pass:
+
+- ThorVG: lightweight open-source vector graphics engine with SVG, Lottie, PNG, JPEG, WebP, TTF, and WebAssembly-oriented deployment paths.
+- Inkscape extension ecosystem: useful reference for SVG-first workflows and downstream manual editing, but too broad for direct dependency.
+- OpenVG / vector graphics acceleration history: reinforces keeping vector output abstractions separate from raster preview code.
+- Tactile graphics substrate literature: raised graphics depend on substrate, elevation, texture, orientation, and output device constraints.
+- Braille embosser references: embossers are device-specific and can support 6-dot or 8-dot Braille, so renderer strategy should not hard-code one physical output family.
+
+Assessment for this repository: renderer strategy is the correct next architectural step. TACTILE, SCREEN, CHROMATIC, ASCII, future accessible SVG, and future embosser export all require different output policies. A registry-based renderer layer keeps `process_image()` stable while new output families are added.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:

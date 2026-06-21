@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.10.3`
+`v1.11.0`
 
 ## Status
 
@@ -19,6 +19,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - Braille density target control and seam diagnostics
 - serpentine error-diffusion dithering
 - tactile, screen, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR` rendering modes
+- renderer strategy runtime for mode-specific output behavior
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - PNG, TXT, JSON report, optional SVG/HTML export, and benchmark CSV output
 - dedicated benchmark smoke job with uploaded benchmark artifacts
@@ -29,12 +30,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.10.3 mode-semantics notes
+### v1.11.0 renderer-strategy notes
 
-- ASCII modes now use a direct text/HTML/PNG preview fast path by default instead of running the full Braille/tactile diagnostics pipeline.
-- Set `include_braille_diagnostics=True` when ASCII reports should also include full Braille dot-grid, dither, density, tactile, and validation diagnostics.
-- Render reports now include structured `renderer`, `artifacts`, and `diagnostics` sections while keeping legacy top-level fields for compatibility.
-- CHROMATIC reports explicitly mark tactile raster roundtrip validation as skipped because chromatic output is antialiased/color-rendered.
+- `process_image()` is now an orchestration layer: validate config, prepare outputs, load image, select renderer, write report.
+- Mode-specific behavior lives under `src/braille_dotmatrix_engine/renderers/`.
+- Public renderer strategies currently cover `TACTILE`, `SCREEN`, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR`.
+- Reports include `renderer.strategy` so callers can verify the selected runtime path.
+- This prepares the project for future semantic/chart/tactile-SVG renderers without continuing to expand one monolithic pipeline function.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -154,6 +156,15 @@ cfg = BrailleArtConfig(
     mode="ASCII_MONO",
     include_braille_diagnostics=True,
 )
+```
+
+Inspect renderer strategies:
+
+```python
+from braille_dotmatrix_engine import get_renderer, renderer_names
+
+print(renderer_names())
+print(type(get_renderer("TACTILE")).__name__)
 ```
 
 ## Unicode Braille mapping

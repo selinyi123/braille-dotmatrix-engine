@@ -23,9 +23,10 @@ def test_process_image_chromatic_report(tmp_path):
     report_path = tmp_path / 'report.json'
     report = process_image(image, BrailleArtConfig(output_width_cells=12, mode='CHROMATIC'), tmp_path / 'out.png', tmp_path / 'out.txt', report_path)
     assert report['schema_version'] == '1.9'
-    assert report['package_version'] == '1.10.3'
+    assert report['package_version'] == '1.11.0'
     assert report['mode'] == 'CHROMATIC'
     assert report['renderer']['backend'] == 'CHROMATIC'
+    assert report['renderer']['strategy'] == 'ChromaticRenderer'
     assert report['renderer']['braille_pipeline_executed'] is True
     assert report['diagnostics']['braille_pipeline']['executed'] is True
     assert report['chromatic_render']['backend'] == 'CHROMATIC'

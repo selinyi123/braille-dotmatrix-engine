@@ -75,7 +75,8 @@ def test_process_image_ascii_report(tmp_path):
         html_path,
     )
     assert report['schema_version'] == '1.9'
-    assert report['package_version'] == '1.10.3'
+    assert report['package_version'] == '1.11.0'
+    assert report['renderer']['strategy'] == 'AsciiMonoRenderer'
     assert report['ascii_render']['backend'] == 'ASCII_MONO'
     assert report['ascii_render']['charset_preset'] == 'standard'
     assert report['ascii_render']['png_preview']['png_path'].endswith('out.png')
@@ -113,6 +114,7 @@ def test_ascii_can_request_braille_diagnostics(tmp_path):
         tmp_path / 'report.json',
     )
     assert report['diagnostics']['braille_pipeline']['executed'] is True
+    assert report['renderer']['strategy'] == 'AsciiMonoRenderer'
     assert report['renderer']['braille_pipeline_executed'] is True
     assert report['dots_shape'] is not None
     assert report['braille_quality'] is not None
