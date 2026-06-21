@@ -73,6 +73,14 @@ def test_cli_writes_brf_for_braille_backed_mode(tmp_path: Path, monkeypatch):
     assert persisted['brf_export']['path'].endswith('out.brf')
 
 
+def test_cli_benchmark_ignores_render_only_brf_options(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code = main(['--benchmark', '--mode', 'ASCII_MONO', '--output-brf', 'ignored.brf', '--benchmark-csv', 'bench.csv'])
+    assert code == 0
+    assert (tmp_path / 'bench.csv').exists()
+    assert not (tmp_path / 'ignored.brf').exists()
+
+
 def test_cli_benchmark_generates_csv(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(['--benchmark', '--benchmark-csv', 'bench.csv']) == 0
