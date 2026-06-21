@@ -50,6 +50,11 @@ class BrailleArtConfig:
     max_local_occupancy: float = 0.72
     strict_tactile_validation: bool = False
 
+    # Resource safety limits. These prevent accidental unbounded dot-grid and
+    # raster/vector artifact generation from pathological API inputs.
+    max_output_width_cells: int = 320
+    max_total_dots: int = 2_000_000
+
     # Mode semantics. ASCII modes use a fast path by default; enable this to
     # attach full Braille/tactile diagnostics to ASCII reports.
     include_braille_diagnostics: bool = False

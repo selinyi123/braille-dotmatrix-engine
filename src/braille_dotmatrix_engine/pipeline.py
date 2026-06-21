@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-from .artifacts import prepare_artifact_dirs
+from .artifacts import artifact_manifest, legacy_artifact_paths, prepare_artifact_dirs
 from .config import BrailleArtConfig
 from .renderers import RenderContext, get_renderer
 from .reports import adapt_render_report, base_render_report
@@ -45,6 +45,20 @@ def _load_image(image_path):
     return img
 
 
+def _write_report_json(report: dict, report_json) -> None:
+    Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+
+
+def _refresh_artifact_manifest(report: dict, output_png, output_txt, report_json, output_svg=None, output_html=None) -> dict:
+    """Refresh artifact existence after all primary artifacts have been written."""
+
+    updated = dict(report)
+    manifest = artifact_manifest(output_png, output_txt, report_json, output_svg, output_html)
+    updated['artifact_manifest'] = manifest
+    updated['artifacts'] = legacy_artifact_paths(manifest)
+    return updated
+
+
 def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.png', output_txt='output_braille.txt', report_json='render_report.json', output_svg=None, output_html=None):
     validate_config(cfg)
     start = time.time()
@@ -63,5 +77,10 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     base = base_render_report(img, cfg, start, output_png, output_txt, report_json, output_svg, output_html)
     rendered = renderer.render(img, cfg, context).report
     report = adapt_render_report(base, rendered, cfg, renderer, start, output_png, output_txt, report_json, output_svg, output_html)
-    Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+
+    # The first write creates the report artifact. The second write persists the
+    # refreshed manifest so report_json.exists reflects the final on-disk state.
+    _write_report_json(report, report_json)
+    report = _refresh_artifact_manifest(report, output_png, output_txt, report_json, output_svg, output_html)
+    _write_report_json(report, report_json)
     return report

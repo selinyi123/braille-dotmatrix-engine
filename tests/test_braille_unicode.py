@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from braille_dotmatrix_engine.braille_unicode import (
     BRAILLE_BASE,
@@ -61,3 +62,13 @@ def test_partial_cells_are_cropped_predictably():
     assert encoded.shape == (1, 1)
     assert decoded.shape == (4, 2)
     assert decoded.all()
+
+
+def test_decode_braille_matrix_rejects_non_braille_characters():
+    with pytest.raises(ValueError, match="non-Braille"):
+        decode_braille_matrix(np.array([["A"]]))
+
+
+def test_decode_braille_matrix_rejects_multi_character_cells():
+    with pytest.raises(ValueError, match="non-single-character"):
+        decode_braille_matrix(np.array([["⠁⠃"]], dtype=object))

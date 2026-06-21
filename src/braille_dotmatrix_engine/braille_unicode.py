@@ -99,6 +99,16 @@ def encode_to_braille_matrix(dot_binary) -> np.ndarray:
     return encoder(masks).astype("<U1")
 
 
+def _decode_matrix_cell_to_mask(ch) -> int:
+    text = str(ch)
+    if len(text) != 1:
+        raise ValueError("cell_matrix contains non-single-character cells")
+    codepoint = ord(text)
+    if codepoint < BRAILLE_BASE or codepoint > BRAILLE_MAX:
+        raise ValueError("cell_matrix contains non-Braille characters")
+    return codepoint - BRAILLE_BASE
+
+
 def decode_braille_matrix(cell_matrix) -> np.ndarray:
     """Decode a Unicode Braille matrix back into a physical 4x2 dot grid."""
 
@@ -108,10 +118,8 @@ def decode_braille_matrix(cell_matrix) -> np.ndarray:
     if cells.ndim != 2:
         raise ValueError("cell_matrix must be a 2D array")
 
-    decode = np.frompyfunc(lambda ch: ord(str(ch)) - BRAILLE_BASE, 1, 1)
+    decode = np.frompyfunc(_decode_matrix_cell_to_mask, 1, 1)
     masks = decode(cells).astype(np.uint16)
-    if np.any((masks < 0) | (masks > 255)):
-        raise ValueError("cell_matrix contains non-Braille characters")
 
     blocks = (masks[:, :, None, None] & BRAILLE_WEIGHTS[None, None, :, :]) != 0
     return blocks.transpose(0, 2, 1, 3).reshape(cells.shape[0] * 4, cells.shape[1] * 2)

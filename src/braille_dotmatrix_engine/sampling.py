@@ -1,17 +1,39 @@
 from __future__ import annotations
+import numbers
+
 import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
 from .preprocess import float01
 
+
+def _require_int_positive(name: str, value) -> int:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f'{name} must be an integer')
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f'{name} must be positive')
+    return parsed
+
+
+def _enforce_dot_grid_limit(cfg, dx: int, dy: int) -> None:
+    max_total_dots = _require_int_positive('max_total_dots', getattr(cfg, 'max_total_dots', 2_000_000))
+    total = int(dx) * int(dy)
+    if total > max_total_dots:
+        raise ValueError(f'dot grid too large: {total} dots exceeds max_total_dots={max_total_dots}')
+
+
 def build_dot_grid(cfg, shape):
     h, w = shape[:2]
-    dx = max(2, 2 * int(cfg.output_width_cells))
+    output_width_cells = _require_int_positive('output_width_cells', cfg.output_width_cells)
+    dx = max(2, 2 * output_width_cells)
     dy = max(4, int(round((h / max(w, 1)) * dx / 4)) * 4)
+    _enforce_dot_grid_limit(cfg, dx, dy)
     spacing = w / dx
     xs = (np.arange(dx) + 0.5) * spacing
     ys = (np.arange(dy) + 0.5) * spacing
     xx, yy = np.meshgrid(xs, ys)
     return np.stack([xx, yy], axis=-1).astype(np.float32), dx, dy, float(spacing)
+
 
 def gaussian_dot_sampling_flat(img, coords_xy, spacing_px, cfg):
     gray = float01(img)
@@ -22,8 +44,10 @@ def gaussian_dot_sampling_flat(img, coords_xy, spacing_px, cfg):
     cols = np.clip(coords[:, 0], 0, gray.shape[1] - 1)
     return np.clip(map_coordinates(blur, [rows, cols], order=1, mode='reflect').astype(np.float32), 0, 1)
 
+
 def gaussian_dot_sampling_grid(img, coords, spacing_px, cfg):
     return gaussian_dot_sampling_flat(img, coords.reshape(-1, 2), spacing_px, cfg).reshape(coords.shape[:2])
+
 
 def _tile_weights(tile_coords, x0, y0, x1, y1, overlap):
     if overlap <= 0:
@@ -35,6 +59,7 @@ def _tile_weights(tile_coords, x0, y0, x1, y1, overlap):
     top = np.clip((ys - y0) / overlap, 0.0, 1.0)
     bottom = np.clip((y1 - ys) / overlap, 0.0, 1.0)
     return np.maximum(np.minimum.reduce([left, right, top, bottom]), 0.05).astype(np.float32)
+
 
 def process_tiles(img, coords, cfg):
     gray = float01(img)

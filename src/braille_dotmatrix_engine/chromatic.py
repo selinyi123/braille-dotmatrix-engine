@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numbers
 from pathlib import Path
 
 import cv2
@@ -7,16 +8,23 @@ import numpy as np
 from PIL import Image
 from scipy.ndimage import gaussian_filter
 
+from .preprocess import as_bgr_uint8
+
 __all__ = ["build_chromatic_array", "render_chromatic_png"]
 
 
+def _require_int_positive(name: str, value) -> int:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f"{name} must be an integer")
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f"{name} must be positive")
+    return parsed
+
+
 def _as_rgb_float(source_bgr: np.ndarray) -> np.ndarray:
-    src = np.asarray(source_bgr)
-    if src.ndim == 2:
-        src = np.repeat(src[:, :, None], 3, axis=2)
-    if src.shape[2] == 4:
-        src = src[:, :, :3]
-    return cv2.cvtColor(src.astype(np.uint8), cv2.COLOR_BGR2RGB).astype(np.float32)
+    bgr = as_bgr_uint8(source_bgr)
+    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB).astype(np.float32)
 
 
 def _white_balance_highlights(rgb: np.ndarray) -> np.ndarray:
@@ -66,12 +74,14 @@ def _neutral_aware_saturation(colors: np.ndarray, cfg) -> np.ndarray:
 
 def build_chromatic_array(binary, source_bgr, cfg) -> np.ndarray:
     b = np.asarray(binary, dtype=bool)
+    if b.ndim != 2:
+        raise ValueError("binary must be a 2D dot matrix")
     dot_h, dot_w = b.shape
     if dot_h < 4 or dot_w < 2:
         return np.zeros((1, 1, 3), dtype=np.uint8)
 
-    cell_w = int(getattr(cfg, "chromatic_cell_w_px", 10))
-    cell_h = int(getattr(cfg, "chromatic_cell_h_px", 16))
+    cell_w = _require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10))
+    cell_h = _require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16))
     rows = dot_h // 4
     cols = dot_w // 2
     out_h = max(1, rows * cell_h)
@@ -118,7 +128,7 @@ def render_chromatic_png(binary, source_bgr, cfg, path) -> dict:
     return {
         "backend": "CHROMATIC",
         "shape": [int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])],
-        "cell_w_px": int(getattr(cfg, "chromatic_cell_w_px", 10)),
-        "cell_h_px": int(getattr(cfg, "chromatic_cell_h_px", 16)),
+        "cell_w_px": _require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10)),
+        "cell_h_px": _require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16)),
         "sigma_ratio": float(getattr(cfg, "chromatic_sigma_ratio", 0.62)),
     }

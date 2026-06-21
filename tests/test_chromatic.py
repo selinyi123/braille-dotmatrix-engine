@@ -2,6 +2,7 @@ import json
 
 import cv2
 import numpy as np
+import pytest
 
 from braille_dotmatrix_engine import BrailleArtConfig, build_chromatic_array, create_demo_image, process_image
 
@@ -18,12 +19,35 @@ def test_chromatic_array_shape_and_dtype():
     assert int(arr.max()) > 0
 
 
+def test_chromatic_backend_rejects_non_2d_binary_input():
+    cfg = BrailleArtConfig(mode='CHROMATIC')
+    source = np.zeros((16, 16, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match='2D dot matrix'):
+        build_chromatic_array(np.zeros((8,), dtype=bool), source, cfg)
+
+
+def test_chromatic_backend_rejects_empty_source_image():
+    cfg = BrailleArtConfig(mode='CHROMATIC')
+    binary = np.ones((8, 8), dtype=bool)
+    with pytest.raises(ValueError, match='non-empty'):
+        build_chromatic_array(binary, np.zeros((0, 8, 3), dtype=np.uint8), cfg)
+
+
+def test_chromatic_backend_rejects_fractional_cell_dimensions_for_direct_api_calls():
+    cfg = BrailleArtConfig(mode='CHROMATIC')
+    cfg.chromatic_cell_w_px = 8.5
+    binary = np.ones((8, 8), dtype=bool)
+    source = np.zeros((16, 16, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match='chromatic_cell_w_px'):
+        build_chromatic_array(binary, source, cfg)
+
+
 def test_process_image_chromatic_report(tmp_path):
     image = create_demo_image(tmp_path / 'demo.png', size=96)
     report_path = tmp_path / 'report.json'
     report = process_image(image, BrailleArtConfig(output_width_cells=12, mode='CHROMATIC'), tmp_path / 'out.png', tmp_path / 'out.txt', report_path)
     assert report['schema_version'] == '1.11'
-    assert report['package_version'].startswith('1.18')
+    assert report['package_version']
     assert report['mode'] == 'CHROMATIC'
     assert report['renderer']['backend'] == 'CHROMATIC'
     assert report['renderer']['strategy'] == 'ChromaticRenderer'

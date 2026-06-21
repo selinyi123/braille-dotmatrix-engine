@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import numbers
 from html import escape
 from pathlib import Path
 
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+from .preprocess import as_bgr_uint8
 
 __all__ = [
     "ASCII_PRESETS",
@@ -34,6 +37,33 @@ def _normalize01(arr: np.ndarray) -> np.ndarray:
     return np.clip((a - lo) / (hi - lo), 0.0, 1.0)
 
 
+def _require_int_positive(name: str, value) -> int:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f"{name} must be an integer")
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f"{name} must be positive")
+    return parsed
+
+
+def _resolve_cols(cfg) -> int:
+    cols = _require_int_positive("output_width_cells", getattr(cfg, "output_width_cells", 80))
+    limit = getattr(cfg, "max_output_width_cells", None)
+    if limit is not None and cols > _require_int_positive("max_output_width_cells", limit):
+        raise ValueError("output_width_cells must not exceed max_output_width_cells")
+    return cols
+
+
+def _enforce_ascii_cell_limit(cfg, cols: int, rows: int) -> None:
+    limit = getattr(cfg, "max_total_dots", None)
+    if limit is None:
+        return
+    max_cells = _require_int_positive("max_total_dots", limit)
+    total = int(cols) * int(rows)
+    if total > max_cells:
+        raise ValueError(f"ASCII grid too large: {total} cells exceeds max_total_dots={max_cells}")
+
+
 def resolve_ascii_charset(cfg) -> tuple[str, str]:
     preset = str(getattr(cfg, "ascii_charset_preset", "custom"))
     if preset != "custom":
@@ -47,17 +77,12 @@ def resolve_ascii_charset(cfg) -> tuple[str, str]:
 
 
 def _prepare_image(source_bgr, cols: int, cfg) -> tuple[np.ndarray, np.ndarray]:
-    src = np.asarray(source_bgr)
-    if src.ndim == 2:
-        bgr = cv2.cvtColor(src.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-    elif src.shape[2] == 4:
-        bgr = src[:, :, :3].astype(np.uint8)
-    else:
-        bgr = src.astype(np.uint8)
+    bgr = as_bgr_uint8(source_bgr)
 
     h, w = bgr.shape[:2]
     aspect = float(getattr(cfg, "ascii_aspect_ratio", 0.50))
     rows = max(1, int(round((h / max(w, 1)) * cols * aspect)))
+    _enforce_ascii_cell_limit(cfg, cols, rows)
     resized = cv2.resize(bgr, (cols, rows), interpolation=cv2.INTER_AREA)
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
 
@@ -99,18 +124,17 @@ def _quality_report(luma: np.ndarray, quantized: np.ndarray) -> dict:
     }
 
 
-def _ascii_matrix(source_bgr, cfg) -> tuple[np.ndarray, np.ndarray, np.ndarray, str, str]:
-    cols = int(getattr(cfg, "output_width_cells", 80))
+def _ascii_matrix(source_bgr, cfg) -> tuple[np.ndarray, np.ndarray, np.ndarray, str, str, np.ndarray]:
+    cols = _resolve_cols(cfg)
     charset, preset = resolve_ascii_charset(cfg)
     luma, colors = _prepare_image(source_bgr, cols, cfg)
     matrix, quantized = _chars_from_luma(luma, charset)
-    return matrix, quantized, colors, charset, preset
+    return matrix, quantized, colors, charset, preset, luma
 
 
 def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, dict]:
     color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
-    matrix, quantized, colors, charset, preset = _ascii_matrix(source_bgr, cfg)
-    luma, _ = _prepare_image(source_bgr, int(getattr(cfg, "output_width_cells", 80)), cfg)
+    matrix, quantized, colors, charset, preset, luma = _ascii_matrix(source_bgr, cfg)
 
     lines: list[str] = []
     if color:
@@ -139,8 +163,7 @@ def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, 
 
 def render_ascii_html(source_bgr, cfg, color: bool | None = None) -> tuple[str, dict]:
     color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
-    matrix, quantized, colors, _, _ = _ascii_matrix(source_bgr, cfg)
-    luma, _ = _prepare_image(source_bgr, int(getattr(cfg, "output_width_cells", 80)), cfg)
+    matrix, quantized, colors, _, _, luma = _ascii_matrix(source_bgr, cfg)
     lines: list[str] = []
     for row_chars, row_colors in zip(matrix, colors):
         parts: list[str] = []
@@ -163,7 +186,7 @@ def render_ascii_html(source_bgr, cfg, color: bool | None = None) -> tuple[str, 
 
 def render_ascii_png(source_bgr, cfg, path, color: bool | None = None) -> dict:
     color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
-    matrix, _, colors, _, _ = _ascii_matrix(source_bgr, cfg)
+    matrix, _, colors, _, _, _ = _ascii_matrix(source_bgr, cfg)
     font = ImageFont.load_default()
     probe = Image.new("RGB", (1, 1))
     draw_probe = ImageDraw.Draw(probe)
