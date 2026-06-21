@@ -5,12 +5,16 @@ def test_artifact_manifest_includes_roles_and_legacy_paths(tmp_path):
     png = tmp_path / 'out.png'
     txt = tmp_path / 'out.txt'
     report = tmp_path / 'report.json'
-    manifest = artifact_manifest(png, txt, report, None, tmp_path / 'out.html')
+    brf = tmp_path / 'out.brf'
+    manifest = artifact_manifest(png, txt, report, None, tmp_path / 'out.html', brf)
     assert manifest['png']['path'].endswith('out.png')
     assert manifest['png']['kind'] == 'image'
     assert manifest['png']['mime'] == 'image/png'
     assert manifest['svg']['path'] is None
     assert manifest['html']['role'] == 'browser-previewable ASCII artifact'
+    assert manifest['brf']['path'].endswith('out.brf')
+    assert manifest['brf']['mime'] == 'application/x-brf'
+    assert manifest['brf']['exists'] is False
 
 
 def test_process_image_report_has_manifest_and_legacy_artifacts(tmp_path):
@@ -22,12 +26,13 @@ def test_process_image_report_has_manifest_and_legacy_artifacts(tmp_path):
         tmp_path / 'ascii.txt',
         tmp_path / 'report.json',
     )
-    assert report['package_version'] == '1.15.0'
-    assert report['schema_version'] == '1.10'
+    assert report['package_version'] == '1.16.0'
+    assert report['schema_version'] == '1.11'
     assert report['artifacts']['png'].endswith('out.png')
     assert report['artifact_manifest']['png']['path'].endswith('out.png')
     assert report['artifact_manifest']['png']['exists'] is True
     assert report['artifact_manifest']['txt']['exists'] is True
     assert report['artifact_manifest']['report_json']['path'].endswith('report.json')
     assert report['artifact_manifest']['html']['path'].endswith('ascii.html')
+    assert report['artifact_manifest']['brf']['path'] is None
     assert report['renderer']['strategy'] == 'AsciiMonoRenderer'
