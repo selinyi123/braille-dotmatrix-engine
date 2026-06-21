@@ -50,6 +50,10 @@ class BrailleArtConfig:
     max_local_occupancy: float = 0.72
     strict_tactile_validation: bool = False
 
+    # Mode semantics. ASCII modes use a fast path by default; enable this to
+    # attach full Braille/tactile diagnostics to ASCII reports.
+    include_braille_diagnostics: bool = False
+
     # Braille enhancement layer, applied after sampling and before dithering.
     braille_preserve_edges: bool = True
     braille_edge_weight: float = 0.22

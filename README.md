@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.10.2`
+`v1.10.3`
 
 ## Status
 
@@ -29,13 +29,12 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.10.2 hardening notes
+### v1.10.3 mode-semantics notes
 
-- Expanded public configuration validation for render modes, dither methods, geometry, material, printer, Braille enhancement, ASCII, and chromatic parameters.
-- Added a shared manufacturing-compensated dot-radius helper so PNG and SVG exports use the same physical radius policy.
-- Added package-version reporting while keeping render and benchmark schema versions independent.
-- Added tests for invalid configuration rejection and SVG geometry compensation.
-- Added research and version-planning docs to reduce duplicate work before the V2 semantic tactile engine.
+- ASCII modes now use a direct text/HTML/PNG preview fast path by default instead of running the full Braille/tactile diagnostics pipeline.
+- Set `include_braille_diagnostics=True` when ASCII reports should also include full Braille dot-grid, dither, density, tactile, and validation diagnostics.
+- Render reports now include structured `renderer`, `artifacts`, and `diagnostics` sections while keeping legacy top-level fields for compatibility.
+- CHROMATIC reports explicitly mark tactile raster roundtrip validation as skipped because chromatic output is antialiased/color-rendered.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -134,7 +133,6 @@ cfg = BrailleArtConfig(
     output_width_cells=100,
     mode="ASCII_MONO",
     ascii_charset_preset="dense",
-    braille_target_density=0.38,
     seed=42,
 )
 
@@ -145,6 +143,16 @@ report = process_image(
     output_txt="artifacts/output.txt",
     report_json="artifacts/render_report.json",
     output_html="artifacts/output.html",
+)
+```
+
+Attach Braille diagnostics to ASCII output when needed:
+
+```python
+cfg = BrailleArtConfig(
+    output_width_cells=100,
+    mode="ASCII_MONO",
+    include_braille_diagnostics=True,
 )
 ```
 

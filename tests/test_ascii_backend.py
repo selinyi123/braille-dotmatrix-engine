@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -74,16 +75,22 @@ def test_process_image_ascii_report(tmp_path):
         html_path,
     )
     assert report['schema_version'] == '1.9'
+    assert report['package_version'] == '1.10.3'
     assert report['ascii_render']['backend'] == 'ASCII_MONO'
     assert report['ascii_render']['charset_preset'] == 'standard'
     assert report['ascii_render']['png_preview']['png_path'].endswith('out.png')
+    assert report['diagnostics']['braille_pipeline']['executed'] is False
+    assert report['renderer']['braille_pipeline_executed'] is False
+    assert report['dither_method'] is None
+    assert report['dots_shape'] is None
+    assert report['braille_quality'] is None
     assert (tmp_path / 'ascii.txt').exists()
     assert html_path.exists()
     assert Image.open(tmp_path / 'out.png').mode == 'RGB'
     assert json.loads(report_path.read_text(encoding='utf-8'))['mode'] == 'ASCII_MONO'
 
 
-def test_process_image_ascii_html_default_path(tmp_path):
+def test_process_image_ascii_html_default_path(tmp_path: Path):
     image = create_demo_image(tmp_path / 'demo.png', size=96)
     report = process_image(
         image,
@@ -94,3 +101,19 @@ def test_process_image_ascii_html_default_path(tmp_path):
     )
     assert (tmp_path / 'ascii.html').exists()
     assert report['ascii_render']['html_path'].endswith('ascii.html')
+
+
+def test_ascii_can_request_braille_diagnostics(tmp_path):
+    image = create_demo_image(tmp_path / 'demo.png', size=96)
+    report = process_image(
+        image,
+        BrailleArtConfig(output_width_cells=12, mode='ASCII_MONO', include_braille_diagnostics=True),
+        tmp_path / 'out.png',
+        tmp_path / 'ascii.txt',
+        tmp_path / 'report.json',
+    )
+    assert report['diagnostics']['braille_pipeline']['executed'] is True
+    assert report['renderer']['braille_pipeline_executed'] is True
+    assert report['dots_shape'] is not None
+    assert report['braille_quality'] is not None
+    assert report['ascii_render']['backend'] == 'ASCII_MONO'

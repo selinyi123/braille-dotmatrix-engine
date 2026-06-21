@@ -48,6 +48,17 @@ Relevant research directions:
 
 Assessment: this is the strongest V2/V3 direction. The next meaningful leap is semantic region mapping, object-edge-text separation, and region-specific tactile policies.
 
+### 5. v1.10.3 research pass: accessible SVG and tactile chart semantics
+
+New sources reviewed for this pass:
+
+- ChartFormer: chart image to tactile-accessible SVGs, with a synthetic Chart2Tactile dataset and pilot evaluation on a refreshable two-dimensional tactile display.
+- Tactile Vega-Lite: tactile chart specification layer with tactile-specific abstractions, spacing defaults, textures, line styles, and Braille translation support.
+- Chart4Blind: bitmap line-chart conversion into SVG, CSV, and alt-text outputs for embossed prints, laser-cut output, tactile displays, and screen readers.
+- Tactile graphics literature: tactile graphics are not equivalent to visual images; they require surface, texture, orientation, elevation, and substrate-aware design.
+
+Assessment for this repository: `v1.10.3` should separate renderer semantics from diagnostics. ASCII previews, chromatic previews, tactile dot exports, and future accessible SVGs are different renderer outputs. Running every output through one Braille-heavy pipeline creates misleading reports and wastes runtime. This motivates the current ASCII fast path and structured report sections.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
