@@ -83,6 +83,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: artifact metadata should be explicit, not inferred from file extensions or renderer mode. A dedicated artifact manifest makes future tactile SVG, embosser, interactive marker overlays, and semantic report outputs easier to audit and test.
 
+### 8. v1.13.0 research pass: benchmark profiles and memory reporting
+
+New sources reviewed for this pass:
+
+- scikit-image: confirms that Python image-processing systems benefit from reproducible examples, documented APIs, and scientific benchmark discipline.
+- Python memory profiling references: RSS and peak-memory tracking are coarse but useful for CI, while specialized profilers such as Scalene are better left as optional developer tooling.
+- Theoretical CS memory references: time and space complexity should be tracked as functions of input size; large image profiles should therefore report pixels, megapixels, and estimated working set.
+- External-memory algorithm references: large data pipelines can exceed memory and need explicit profile boundaries; this supports opt-in `medium` and `stress` benchmark profiles rather than making 4K mandatory in PR CI.
+- Stack Overflow, Lobsters, Reddit, X/Twitter, Zhihu, hackathon, and TCS Stack Exchange searches did not reveal a stronger direct component than adding benchmark profiles and memory/artifact metrics to the existing benchmark module.
+
+Assessment for this repository: benchmark artifacts should capture input scale, memory estimates, observed RSS, and output size. This is enough for V1 engineering control without prematurely introducing heavyweight profiling dependencies.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -94,4 +106,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 5. segmentation-assisted tactile policy,
 6. fast raster/vector backends,
 7. benchmark datasets for tactile graphics,
-8. artifact manifests and interactive tactile metadata.
+8. artifact manifests and interactive tactile metadata,
+9. benchmark profiles, memory models, and artifact-size accounting.

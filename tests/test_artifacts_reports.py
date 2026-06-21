@@ -22,7 +22,7 @@ def test_process_image_report_has_manifest_and_legacy_artifacts(tmp_path):
         tmp_path / 'ascii.txt',
         tmp_path / 'report.json',
     )
-    assert report['package_version'] == '1.12.0'
+    assert report['package_version'] == '1.13.0'
     assert report['schema_version'] == '1.10'
     assert report['artifacts']['png'].endswith('out.png')
     assert report['artifact_manifest']['png']['path'].endswith('out.png')
