@@ -77,7 +77,7 @@ def brf_report_summary(report: dict[str, Any]) -> str:
     diagnostics = report.get('diagnostics', {})
     reasons = diagnostics.get('by_reason', {}) or {}
     reason_text = ','.join(f'{key}:{value}' for key, value in sorted(reasons.items())) or 'none'
-    status = 'ok' if report.get('ok') else 'issues'
+    status = 'issues' if int(diagnostics.get('total', 0) or 0) > 0 else 'ok'
     return (
         f"BRF {status}; profile={report.get('profile')}; pages={report.get('pages')}; "
         f"cols={report.get('cols')}; rows={report.get('rows')}; "
