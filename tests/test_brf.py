@@ -11,7 +11,7 @@ from braille_dotmatrix_engine import (
     unicode_braille_to_brf_text,
     write_brf_text,
 )
-from braille_dotmatrix_engine.brf import BrfExportError, summarize_brf_diagnostics
+from braille_dotmatrix_engine.brf import BrfExportError, brf_report_summary, summarize_brf_diagnostics, validate_brf_text
 from braille_dotmatrix_engine.schema import PACKAGE_VERSION
 
 
@@ -32,6 +32,7 @@ def test_unicode_braille_to_sixdot_text_basic_mapping():
     assert result.report['encoding'] == 'BRAILLE_ASCII_SIX_DOT'
     assert result.report['unsupported_count'] == 0
     assert result.report['diagnostics']['total'] == 0
+    assert result.report['summary'].startswith('BRF ok;')
 
 
 def test_sixdot_text_wraps_and_paginates():
@@ -52,6 +53,7 @@ def test_eight_dot_cells_are_reported_as_errors():
     assert result.report['unsupported'][0]['severity'] == 'error'
     assert result.report['error_count'] == 1
     assert result.report['diagnostics']['by_reason']['dots_7_or_8_not_supported'] == 1
+    assert 'errors=1' in result.report['summary']
 
 
 def test_non_braille_characters_are_reported_as_warnings():
@@ -81,6 +83,23 @@ def test_summarize_brf_diagnostics_groups_reasons():
     assert summary['by_reason']['non_braille_character'] == 1
 
 
+def test_brf_report_summary_is_compact():
+    report = unicode_braille_to_brf_text('A', GenericEmbosserProfile(max_cols=10, max_rows=10)).report
+    summary = brf_report_summary(report)
+    assert summary.startswith('BRF issues;')
+    assert 'warnings=1' in summary
+    assert 'non_braille_character:1' in summary
+
+
+def test_validate_brf_text_does_not_write_file():
+    report = validate_brf_text('A', GenericEmbosserProfile(max_cols=10, max_rows=10), strict=True)
+    assert report['validate_only'] is True
+    assert report['bytes'] == 0
+    assert report['path'] is None
+    assert report['diagnostics']['total'] == 1
+    assert report['summary'].startswith('BRF issues;')
+
+
 def test_six_dot_profile_required():
     with pytest.raises(ValueError):
         unicode_braille_to_brf_text('⠁', GenericEmbosserProfile(cell_mode='EIGHT_DOT'))
@@ -93,6 +112,7 @@ def test_write_sixdot_text(tmp_path: Path):
     assert report['path'].endswith('out.brf')
     assert report['bytes'] == 2
     assert report['ok'] is True
+    assert report['summary'].startswith('BRF ok;')
 
 
 def test_write_sixdot_text_strict_raises_before_file_write(tmp_path: Path):
