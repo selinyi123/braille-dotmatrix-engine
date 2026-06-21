@@ -42,7 +42,7 @@ Acceptance:
 
 ## v1.11.0 — Renderer strategy architecture
 
-Status: implemented in `feat/v1.11.0-renderer-strategy`.
+Status: merged to `main`.
 
 Goals:
 
@@ -56,25 +56,29 @@ Acceptance:
 
 - `process_image` validates config, prepares outputs, loads image, selects renderer, writes report,
 - each public mode resolves through `get_renderer`,
-- renderer strategy is visible in `report["renderer"]["strategy"]`,
+- renderer strategy is visible in render reports,
 - output artifacts remain compatible with v1.10 reports,
 - adding a new renderer can be done through the registry and renderer package instead of editing core orchestration.
 
-## v1.12.0 — Report adapter and artifact writer
+## v1.12.0 — Report adapter and artifact manifest
+
+Status: implemented in `feat/v1.12.0-report-artifacts`.
 
 Goals:
 
-- introduce `ReportBuilder` or `ReportAdapter` for legacy top-level compatibility fields,
-- introduce `ArtifactWriter` for path management and output manifest generation,
-- centralize output path semantics for PNG, TXT, SVG, HTML, JSON, and benchmark artifacts,
-- prepare optional schema version bump after compatibility audit.
+- introduce artifact manifest generation for PNG, TXT, SVG, HTML, and JSON report outputs,
+- centralize output directory preparation,
+- introduce report adapter functions for base report creation and renderer report adaptation,
+- preserve legacy `artifacts` path fields,
+- bump render schema to `1.10` to make the manifest explicit.
 
 Acceptance:
 
-- renderers return renderer-native reports,
-- legacy top-level report fields are generated in one adapter,
-- artifact path fields are normalized and tested,
-- report schema compatibility is explicitly documented.
+- render reports include `artifact_manifest`,
+- legacy `artifacts` path fields remain available,
+- artifact entries include path, kind, role, MIME, and existence diagnostics,
+- report schema compatibility is tested,
+- `process_image` remains orchestration-only.
 
 ## v1.13.0 — Large-image benchmark and memory reporting
 
