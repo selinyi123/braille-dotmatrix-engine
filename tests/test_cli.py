@@ -1,4 +1,8 @@
+import json
 from pathlib import Path
+
+import pytest
+
 from braille_dotmatrix_engine.cli import main
 
 
@@ -42,6 +46,31 @@ def test_cli_ascii_html_and_quality_controls(tmp_path: Path, monkeypatch):
     assert (tmp_path / 'ascii.html').exists()
     assert (tmp_path / 'ascii.ansi').exists()
     assert (tmp_path / 'ascii.json').exists()
+
+
+def test_cli_rejects_brf_export_for_ascii_mode(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        main(['--mode', 'ASCII_MONO', '--output-brf', 'ascii.brf'])
+    assert exc.value.code == 2
+    assert not (tmp_path / 'ascii.brf').exists()
+
+
+def test_cli_writes_brf_for_braille_backed_mode(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code = main([
+        '--width-cells', '8',
+        '--mode', 'TACTILE',
+        '--output-png', 'out.png',
+        '--output-txt', 'out.txt',
+        '--report-json', 'report.json',
+        '--output-brf', 'out.brf',
+    ])
+    assert code == 0
+    assert (tmp_path / 'out.brf').exists()
+    persisted = json.loads((tmp_path / 'report.json').read_text(encoding='utf-8'))
+    assert persisted['artifact_manifest']['brf']['exists'] is True
+    assert persisted['brf_export']['path'].endswith('out.brf')
 
 
 def test_cli_benchmark_generates_csv(tmp_path: Path, monkeypatch):
