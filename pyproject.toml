@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "braille-dotmatrix-engine"
-version = "1.10.0"
-description = "Unicode Braille and ASCII visual-symbol rendering engine with benchmark CI, quality controls, tactile, and chromatic outputs"
+version = "1.10.1"
+description = "Unicode Braille and ASCII visual-symbol rendering engine with hardened output semantics, benchmark CI, and quality controls"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

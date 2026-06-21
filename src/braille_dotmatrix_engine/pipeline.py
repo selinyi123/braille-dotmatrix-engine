@@ -14,7 +14,9 @@ from .metrics import compute_quality_metrics
 from .preprocess import apply_clahe_lab
 from .raster import physical_compliance_check, raster_roundtrip_check, render_braille_png
 from .sampling import build_dot_grid, process_tiles
+from .schema import RENDER_SCHEMA_VERSION
 from .tactile import geometry_report, validate_tactile_output
+from .validation import validate_config
 from .vector import export_svg
 from .braille_unicode import braille_matrix_to_text, encode_to_braille_matrix, unicode_roundtrip_test
 from .chromatic import render_chromatic_png
@@ -39,8 +41,18 @@ def _prepare_outputs(*paths):
             Path(path).parent.mkdir(parents=True, exist_ok=True)
 
 
+def _resolve_html_output(cfg: BrailleArtConfig, output_txt, output_html):
+    if output_html is not None:
+        return output_html
+    if cfg.mode in {'ASCII_MONO', 'ASCII_COLOR'} and bool(getattr(cfg, 'ascii_html', False)):
+        return Path(output_txt).with_suffix('.html')
+    return None
+
+
 def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.png', output_txt='output_braille.txt', report_json='render_report.json', output_svg=None, output_html=None):
+    validate_config(cfg)
     start = time.time()
+    output_html = _resolve_html_output(cfg, output_txt, output_html)
     _prepare_outputs(output_png, output_txt, report_json, output_svg, output_html)
     img = cv2.imread(str(image_path))
     if img is None:
@@ -65,9 +77,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     ascii_report = None
     chromatic_report = None
     if cfg.mode in {'ASCII_MONO', 'ASCII_COLOR'}:
-        html_target = output_html if (output_html is not None or bool(getattr(cfg, 'ascii_html', False))) else None
-        ascii_report = write_ascii_output(img, cfg, output_txt, color=(cfg.mode == 'ASCII_COLOR'), html_path=html_target)
-        render_braille_png(binary, cfg, output_png)
+        ascii_report = write_ascii_output(img, cfg, output_txt, color=(cfg.mode == 'ASCII_COLOR'), html_path=output_html, png_path=output_png)
     else:
         Path(output_txt).write_text(braille_text, encoding='utf-8')
         if cfg.mode == 'CHROMATIC':
@@ -77,7 +87,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     svg_report = export_svg(binary, cfg, output_svg) if output_svg is not None else None
     raster_check = raster_roundtrip_check(binary, output_png, cfg) if cfg.mode == 'TACTILE' else {'ok': None, 'skipped': 'non-tactile mode uses antialias/glow/color/text'}
     report = {
-        'schema_version': '1.9',
+        'schema_version': RENDER_SCHEMA_VERSION,
         'image_shape': [h, w],
         'dots_shape': [dy, dx],
         'cells_shape': [dy//4, dx//2],

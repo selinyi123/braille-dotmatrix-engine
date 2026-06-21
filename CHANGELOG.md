@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.10.1
+
+### Fixed
+
+- Fixed ASCII mode PNG semantics: `output_png` now writes a true ASCII preview instead of a Braille-dot preview.
+- Fixed `--ascii-html` behavior so a default sibling `.html` file is generated when `--output-html` is omitted.
+- Fixed Windows local benchmark import compatibility by making RSS measurement tolerate the missing POSIX `resource` module.
+- Reduced render/benchmark schema drift risk by centralizing schema constants.
+- Added centralized config validation before image processing.
+
+### Added
+
+- Added `render_ascii_png` for browser/preview-friendly ASCII raster output.
+- Added tests for ASCII PNG preview, default HTML output, schema constants, RSS fallback, and config validation.
+
+### Changed
+
+- Updated package version to `1.10.1`.
+- Render report schema remains `1.9`; benchmark schema remains `1.10`.
+
 ## v1.10.0
 
 ### Added
@@ -82,12 +102,3 @@
 - Updated render report schema version to `1.5`.
 - Bumped package version to `1.5.0`.
 - Updated README with strict tactile validation usage.
-
-## v1.4.0
-
-### Fixed
-
-- Corrected Unicode Braille physical 4x2 matrix mapping.
-- Added matrix decode path for encode/decode validation.
-- Added regression tests for the official 8-dot Unicode bit layout.
-- Aligned README and package version.

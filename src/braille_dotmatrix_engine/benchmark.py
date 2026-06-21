@@ -4,17 +4,20 @@ import argparse
 import csv
 import json
 import math
-import resource
 import time
 from pathlib import Path
+
+try:  # Windows does not provide the POSIX resource module.
+    import resource
+except ImportError:  # pragma: no cover - exercised on Windows.
+    resource = None
 
 import cv2
 import numpy as np
 
 from .config import BrailleArtConfig
 from .pipeline import process_image
-
-BENCHMARK_SCHEMA_VERSION = "1.10"
+from .schema import BENCHMARK_SCHEMA_VERSION, RENDER_SCHEMA_VERSION
 
 __all__ = [
     "BENCHMARK_SCHEMA_VERSION",
@@ -29,6 +32,8 @@ __all__ = [
 
 
 def _rss_mb() -> float:
+    if resource is None:
+        return 0.0
     usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     # Linux reports KiB, macOS reports bytes. GitHub Actions is Linux, but keep
     # the fallback safe for local usage.
@@ -127,8 +132,8 @@ def validate_benchmark_rows(rows: list[dict], *, max_runtime_sec: float = 60.0, 
             issues.append(f"{label}: rss_peak_mb {rss_peak} outside threshold <= {max_rss_peak_mb}")
         if occupancy < 0 or occupancy > 1:
             issues.append(f"{label}: occupancy_ratio {occupancy} outside [0, 1]")
-        if row.get("schema_version") != "1.9":
-            issues.append(f"{label}: render schema_version is {row.get('schema_version')}, expected 1.9")
+        if row.get("schema_version") != RENDER_SCHEMA_VERSION:
+            issues.append(f"{label}: render schema_version is {row.get('schema_version')}, expected {RENDER_SCHEMA_VERSION}")
         if row.get("benchmark_schema_version") != BENCHMARK_SCHEMA_VERSION:
             issues.append(f"{label}: benchmark_schema_version is {row.get('benchmark_schema_version')}, expected {BENCHMARK_SCHEMA_VERSION}")
     return issues
@@ -150,6 +155,7 @@ def write_benchmark_summary(rows: list[dict], path="benchmark_summary.json", *, 
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark_schema_version": BENCHMARK_SCHEMA_VERSION,
+        "render_schema_version": RENDER_SCHEMA_VERSION,
         "row_count": len(rows),
         "modes": sorted({str(row.get("mode")) for row in rows}),
         "max_runtime_sec": max((_finite_float(row.get("runtime_sec")) for row in rows), default=0.0),

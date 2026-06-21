@@ -1,0 +1,6 @@
+from __future__ import annotations
+
+RENDER_SCHEMA_VERSION = "1.9"
+BENCHMARK_SCHEMA_VERSION = "1.10"
+
+__all__ = ["RENDER_SCHEMA_VERSION", "BENCHMARK_SCHEMA_VERSION"]

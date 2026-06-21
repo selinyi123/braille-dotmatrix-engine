@@ -5,12 +5,14 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 __all__ = [
     "ASCII_PRESETS",
     "resolve_ascii_charset",
     "render_ascii_text",
     "render_ascii_html",
+    "render_ascii_png",
     "write_ascii_output",
 ]
 
@@ -97,12 +99,18 @@ def _quality_report(luma: np.ndarray, quantized: np.ndarray) -> dict:
     }
 
 
-def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, dict]:
+def _ascii_matrix(source_bgr, cfg) -> tuple[np.ndarray, np.ndarray, np.ndarray, str, str]:
     cols = int(getattr(cfg, "output_width_cells", 80))
-    color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
     charset, preset = resolve_ascii_charset(cfg)
     luma, colors = _prepare_image(source_bgr, cols, cfg)
     matrix, quantized = _chars_from_luma(luma, charset)
+    return matrix, quantized, colors, charset, preset
+
+
+def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, dict]:
+    color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
+    matrix, quantized, colors, charset, preset = _ascii_matrix(source_bgr, cfg)
+    luma, _ = _prepare_image(source_bgr, int(getattr(cfg, "output_width_cells", 80)), cfg)
 
     lines: list[str] = []
     if color:
@@ -122,6 +130,7 @@ def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, 
         "edge_weight": float(getattr(cfg, "ascii_edge_weight", 0.0)),
         "ansi_color": bool(color),
         "html_available": True,
+        "png_preview_available": True,
         "monospace_required": True,
         "quality": _quality_report(luma, quantized),
     }
@@ -130,9 +139,8 @@ def render_ascii_text(source_bgr, cfg, color: bool | None = None) -> tuple[str, 
 
 def render_ascii_html(source_bgr, cfg, color: bool | None = None) -> tuple[str, dict]:
     color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
-    charset, _ = resolve_ascii_charset(cfg)
-    luma, colors = _prepare_image(source_bgr, int(getattr(cfg, "output_width_cells", 80)), cfg)
-    matrix, quantized = _chars_from_luma(luma, charset)
+    matrix, quantized, colors, _, _ = _ascii_matrix(source_bgr, cfg)
+    luma, _ = _prepare_image(source_bgr, int(getattr(cfg, "output_width_cells", 80)), cfg)
     lines: list[str] = []
     for row_chars, row_colors in zip(matrix, colors):
         parts: list[str] = []
@@ -153,7 +161,33 @@ def render_ascii_html(source_bgr, cfg, color: bool | None = None) -> tuple[str, 
     return html, _quality_report(luma, quantized)
 
 
-def write_ascii_output(source_bgr, cfg, path, color: bool | None = None, html_path=None) -> dict:
+def render_ascii_png(source_bgr, cfg, path, color: bool | None = None) -> dict:
+    color = bool(getattr(cfg, "ascii_ansi", False)) if color is None else bool(color)
+    matrix, _, colors, _, _ = _ascii_matrix(source_bgr, cfg)
+    font = ImageFont.load_default()
+    probe = Image.new("RGB", (1, 1))
+    draw_probe = ImageDraw.Draw(probe)
+    bbox = draw_probe.textbbox((0, 0), "M", font=font)
+    char_w = max(1, bbox[2] - bbox[0])
+    char_h = max(1, bbox[3] - bbox[1] + 2)
+    pad = 4
+    out = Image.new("RGB", (int(matrix.shape[1] * char_w + 2 * pad), int(matrix.shape[0] * char_h + 2 * pad)), (17, 17, 17))
+    draw = ImageDraw.Draw(out)
+    for row_idx, (row_chars, row_colors) in enumerate(zip(matrix, colors)):
+        y = pad + row_idx * char_h
+        for col_idx, ch in enumerate(row_chars.tolist()):
+            if ch == " ":
+                continue
+            x = pad + col_idx * char_w
+            fill = tuple(int(v) for v in row_colors[col_idx][::-1]) if color else (238, 238, 238)
+            draw.text((x, y), ch, font=font, fill=fill)
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    out.save(path)
+    return {"png_path": str(path), "width_px": out.size[0], "height_px": out.size[1], "font": "PIL.ImageFont.load_default"}
+
+
+def write_ascii_output(source_bgr, cfg, path, color: bool | None = None, html_path=None, png_path=None) -> dict:
     text, report = render_ascii_text(source_bgr, cfg, color=color)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,4 +199,6 @@ def write_ascii_output(source_bgr, cfg, path, color: bool | None = None, html_pa
         html_path.write_text(html, encoding="utf-8")
         report["html_path"] = str(html_path)
         report["html_quality"] = html_quality
+    if png_path is not None:
+        report["png_preview"] = render_ascii_png(source_bgr, cfg, png_path, color=color)
     return report

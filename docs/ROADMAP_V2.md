@@ -18,6 +18,14 @@ This roadmap moves the project from a Braille-only renderer into a quality-contr
 - Track runtime, RSS peak, occupancy, tone, edge, render schema, and benchmark schema metrics.
 - Establish conservative baseline thresholds to detect severe regressions.
 
+## v1.10.1 — Output semantics and schema hardening
+
+- Make ASCII-mode PNG output a true ASCII preview artifact.
+- Auto-create sibling HTML output when `ascii_html` is enabled without an explicit HTML path.
+- Centralize render and benchmark schema constants.
+- Add Windows-safe benchmark RSS fallback.
+- Add centralized config validation before render execution.
+
 ## v1.11.0 — Rasterizer performance
 
 - Replace PIL ellipse loops with an OpenCV or NumPy kernel rasterizer.

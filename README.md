@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.10.0`
+`v1.10.1`
 
 ## Status
 
@@ -19,9 +19,12 @@ This repository is currently in the **V1 engineering prototype** stage:
 - Braille density target control and seam diagnostics
 - serpentine error-diffusion dithering
 - tactile, screen, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR` rendering modes
-- ASCII charset presets and optional HTML export
+- ASCII charset presets, ASCII PNG previews, and optional HTML export
 - PNG, TXT, JSON report, optional SVG/HTML export, and benchmark CSV output
 - dedicated CI benchmark smoke job with uploaded benchmark artifacts
+- centralized render/benchmark schema constants
+- centralized configuration validation before rendering
+- Windows-safe benchmark RSS fallback
 - tactile output validation for spacing, active-dot collisions, and occupancy
 - deterministic seed path for density correction
 - CI test scaffold
@@ -79,6 +82,8 @@ braille-dotmatrix input.png \
   --output-html artifacts/ascii_color.html \
   --report-json artifacts/ascii_color_report.json
 ```
+
+When `--ascii-html` is used without `--output-html`, the engine writes a sibling HTML file next to the ASCII text output.
 
 Render a colored dot-matrix screen preview:
 
@@ -161,7 +166,7 @@ This means every 4x2 physical dot block can be encoded into one Unicode Braille 
 
 | Output | Purpose |
 |---|---|
-| `.png` | tactile black/white raster, monochrome screen preview, chromatic preview, or ASCII preview artifact |
+| `.png` | tactile black/white raster, monochrome screen preview, chromatic preview, or true ASCII preview artifact depending on mode |
 | `.txt` | copyable Unicode Braille or ASCII art text |
 | `.ansi` | ANSI-colored ASCII text |
 | `.html` | browser-previewable ASCII art using monospace layout |
@@ -180,7 +185,7 @@ Current validation and quality reporting includes:
 - occupancy and local-density metrics
 - Braille density target control
 - Braille tile seam diagnostics
-- ASCII tone score, edge score, charset preset, and HTML availability
+- ASCII tone score, edge score, charset preset, PNG preview, and HTML availability
 - benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 
