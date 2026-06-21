@@ -13,12 +13,20 @@ from .embosser import GenericEmbosserProfile, assert_embosser_profile, embosser_
 # the exporter instead of being silently dropped.
 BRAILLE_ASCII_BY_MASK = " A1B'K2L@CIF/MSP\"E3H9O6R^DJG>NTQ,*5<-U8V.%[$+X!&;:4\\0Z7(_?W]#Y)="
 BRAILLE_ASCII_BY_CHAR = {chr(BRAILLE_BASE + idx): glyph for idx, glyph in enumerate(BRAILLE_ASCII_BY_MASK)}
+BRF_ERROR_REASONS = {'dots_7_or_8_not_supported', 'unsupported_braille_cell'}
+BRF_WARNING_REASONS = {'non_braille_character'}
 
 
 @dataclass(frozen=True)
 class BrfExportResult:
     text: str
     report: dict[str, Any]
+
+
+class BrfExportError(ValueError):
+    def __init__(self, report: dict[str, Any]):
+        super().__init__('BRF export failed validation')
+        self.report = report
 
 
 def _line_chunks(line: str, cols: int) -> list[str]:
@@ -36,7 +44,36 @@ def _paginate(lines: list[str], rows: int) -> tuple[str, int]:
     return '\f'.join('\n'.join(page) for page in pages), len(pages)
 
 
-def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | None = None) -> BrfExportResult:
+def brf_issue_severity(reason: str) -> str:
+    if reason in BRF_ERROR_REASONS:
+        return 'error'
+    if reason in BRF_WARNING_REASONS:
+        return 'warning'
+    return 'warning'
+
+
+def summarize_brf_diagnostics(unsupported: list[dict[str, Any]]) -> dict[str, Any]:
+    by_reason: dict[str, int] = {}
+    by_severity: dict[str, int] = {'warning': 0, 'error': 0}
+    for item in unsupported:
+        reason = str(item.get('reason', 'unknown'))
+        severity = str(item.get('severity') or brf_issue_severity(reason))
+        by_reason[reason] = by_reason.get(reason, 0) + 1
+        if severity not in by_severity:
+            by_severity[severity] = 0
+        by_severity[severity] += 1
+    return {
+        'total': len(unsupported),
+        'warning_count': by_severity.get('warning', 0),
+        'error_count': by_severity.get('error', 0),
+        'by_reason': by_reason,
+        'by_severity': by_severity,
+        'has_errors': by_severity.get('error', 0) > 0,
+        'has_warnings': by_severity.get('warning', 0) > 0,
+    }
+
+
+def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> BrfExportResult:
     profile = profile or GenericEmbosserProfile()
     assert_embosser_profile(profile)
     if profile.cell_mode != 'SIX_DOT':
@@ -69,11 +106,13 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
                 reason = 'dots_7_or_8_not_supported' if bool(dots[6] or dots[7]) else 'unsupported_braille_cell'
             else:
                 reason = 'non_braille_character'
-            unsupported.append({'line': row_idx + 1, 'column': col_idx + 1, 'char': ch, 'codepoint': f'U+{code:04X}', 'reason': reason})
+            severity = brf_issue_severity(reason)
+            unsupported.append({'line': row_idx + 1, 'column': col_idx + 1, 'char': ch, 'codepoint': f'U+{code:04X}', 'reason': reason, 'severity': severity})
             out_chars.append('?')
         converted_lines.extend(_line_chunks(''.join(out_chars), cols))
 
     brf_text, pages = _paginate(converted_lines, rows)
+    diagnostics = summarize_brf_diagnostics(unsupported)
     report = {
         'exporter': 'brf_text_export',
         'profile': profile.name,
@@ -84,15 +123,21 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
         'source_lines': len(source_lines),
         'output_lines': len(converted_lines),
         'pages': pages,
+        'strict': strict,
         'unsupported_count': len(unsupported),
+        'warning_count': diagnostics['warning_count'],
+        'error_count': diagnostics['error_count'],
+        'diagnostics': diagnostics,
         'unsupported': unsupported,
-        'ok': not unsupported,
+        'ok': diagnostics['error_count'] == 0 and (not strict or diagnostics['total'] == 0),
     }
+    if strict and diagnostics['total'] > 0:
+        raise BrfExportError(report)
     return BrfExportResult(text=brf_text, report=report)
 
 
-def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile | None = None) -> dict[str, Any]:
-    result = unicode_braille_to_brf_text(text, profile)
+def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> dict[str, Any]:
+    result = unicode_braille_to_brf_text(text, profile, strict=strict)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(result.text, encoding='ascii', newline='\n')

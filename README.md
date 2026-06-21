@@ -1,12 +1,12 @@
 # Braille Dot-Matrix Engine
 
-Industrial Unicode Braille and ASCII visual-symbol rendering engine for tactile graphics, monochrome previews, colored dot-matrix art, terminal text art, HTML previews, CI benchmark artifacts, and benchmarkable rendering experiments.
+Industrial Unicode Braille and ASCII visual-symbol rendering engine for tactile graphics, monochrome previews, colored dot-matrix art, HTML previews, CI benchmark artifacts, and benchmarkable rendering experiments.
 
 The project converts images into a physical 2x4 dot lattice and multiple text/visual encodings: Unicode Braille, tactile PNG/SVG, chromatic previews, ASCII mono/color text, HTML ASCII previews, validation reports, quality reports, and benchmark CSV/JSON artifacts.
 
 ## Current version
 
-`v1.17.0`
+`v1.18.0`
 
 ## Status
 
@@ -24,6 +24,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - generic embosser export boundary for page/device capacity metadata
 - named embosser profile presets for common BRF page capacities
 - conservative six-dot BRF-like text export with compatibility diagnostics
+- BRF diagnostics summary with warning/error counts and reason grouping
 - CLI-level BRF artifact integration and report JSON update path
 - benchmark profiles for smoke, medium, and stress image sizes
 - benchmark memory estimates and artifact-size reporting
@@ -37,13 +38,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.17.0 embosser profile preset notes
+### v1.18.0 BRF diagnostics hardening notes
 
-- Added named BRF-oriented embosser profile presets: `a4-40x25`, `letter-40x25`, `portable-34x25`, and `a4-interpoint-40x25`.
-- Added public helpers: `embosser_profile_names()`, `get_embosser_profile_preset()`, and `build_embosser_profile()`.
-- Added CLI flag `--brf-profile`; `--brf-cols` and `--brf-rows` now override the selected preset.
-- Kept render schema stable at `1.11` because the report contract already has `brf_export` and `artifact_manifest['brf']`.
-- Presets are capacity/layout metadata only; vendor-specific device drivers remain out of scope.
+- Added BRF diagnostic severity for warning/error classification.
+- Added reason grouping through `diagnostics.by_reason` and `diagnostics.by_severity`.
+- Added top-level `warning_count` and `error_count` to BRF export reports.
+- Added strict BRF mode for Python API and CLI.
+- Kept render schema stable at `1.11` because BRF diagnostics live inside the existing `brf_export` report section.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -87,59 +88,13 @@ braille-dotmatrix input.png \
   --report-json artifacts/render_report.json
 ```
 
-Override a preset capacity when needed:
+Enable strict BRF diagnostics:
 
 ```bash
 braille-dotmatrix input.png \
   --mode TACTILE \
   --output-brf artifacts/output_braille.brf \
-  --brf-profile portable-34x25 \
-  --brf-cols 32 \
-  --brf-rows 20
-```
-
-Render ASCII art:
-
-```bash
-braille-dotmatrix input.png \
-  --width-cells 120 \
-  --mode ASCII_MONO \
-  --ascii-preset dense \
-  --output-png artifacts/ascii_preview.png \
-  --output-txt artifacts/ascii.txt \
-  --report-json artifacts/ascii_report.json
-```
-
-Render ANSI color ASCII art with HTML preview:
-
-```bash
-braille-dotmatrix input.png \
-  --width-cells 120 \
-  --mode ASCII_COLOR \
-  --ascii-preset blocks \
-  --ascii-html \
-  --output-txt artifacts/ascii_color.ansi \
-  --output-html artifacts/ascii_color.html \
-  --report-json artifacts/ascii_color_report.json
-```
-
-When `--ascii-html` is used without `--output-html`, the engine writes a sibling HTML file next to the ASCII text output.
-
-Render a colored dot-matrix screen preview:
-
-```bash
-braille-dotmatrix input.png \
-  --width-cells 100 \
-  --mode CHROMATIC \
-  --output-png artifacts/chromatic.png \
-  --output-txt artifacts/chromatic.txt \
-  --report-json artifacts/chromatic_report.json
-```
-
-Strict tactile validation mode:
-
-```bash
-braille-dotmatrix input.png --mode TACTILE --strict-tactile
+  --strict-brf
 ```
 
 Run smoke benchmarks through the package CLI:
@@ -148,77 +103,7 @@ Run smoke benchmarks through the package CLI:
 braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv
 ```
 
-Run the dedicated benchmark module used by CI:
-
-```bash
-python -m braille_dotmatrix_engine.benchmark \
-  --profile smoke \
-  --output-dir artifacts/benchmarks \
-  --csv artifacts/benchmarks/benchmark.csv \
-  --summary artifacts/benchmarks/benchmark_summary.json
-```
-
-Run larger benchmark profiles manually:
-
-```bash
-python -m braille_dotmatrix_engine.benchmark --profile medium --no-ascii
-python -m braille_dotmatrix_engine.benchmark --profile stress --no-ascii --max-runtime-sec 300 --max-rss-mb 8192
-```
-
 ## Python API
-
-```python
-from braille_dotmatrix_engine import BrailleArtConfig, process_image
-
-cfg = BrailleArtConfig(
-    output_width_cells=100,
-    mode="ASCII_MONO",
-    ascii_charset_preset="dense",
-    seed=42,
-)
-
-report = process_image(
-    "input.png",
-    cfg,
-    output_png="artifacts/output.png",
-    output_txt="artifacts/output.txt",
-    report_json="artifacts/render_report.json",
-    output_html="artifacts/output.html",
-)
-
-print(report["artifact_manifest"]["png"])
-```
-
-Attach Braille diagnostics to ASCII output when needed:
-
-```python
-cfg = BrailleArtConfig(
-    output_width_cells=100,
-    mode="ASCII_MONO",
-    include_braille_diagnostics=True,
-)
-```
-
-Inspect renderer strategies:
-
-```python
-from braille_dotmatrix_engine import get_renderer, renderer_names
-
-print(renderer_names())
-print(type(get_renderer("TACTILE")).__name__)
-```
-
-Inspect generic embosser capacity and presets:
-
-```python
-from braille_dotmatrix_engine import build_embosser_profile, embosser_capacity, embosser_profile_names
-
-print(embosser_profile_names())
-profile = build_embosser_profile("a4-40x25")
-print(embosser_capacity(profile))
-```
-
-Export six-dot Braille text as a BRF-like artifact:
 
 ```python
 from braille_dotmatrix_engine import build_embosser_profile, unicode_braille_to_brf_text, write_brf_text
@@ -226,8 +111,19 @@ from braille_dotmatrix_engine import build_embosser_profile, unicode_braille_to_
 profile = build_embosser_profile("a4-40x25")
 result = unicode_braille_to_brf_text("⠁⠃⠉", profile)
 print(result.text)
-print(result.report)
+print(result.report["diagnostics"])
 write_brf_text("⠁⠃⠉", "artifacts/output.brf", profile)
+```
+
+Strict BRF export:
+
+```python
+from braille_dotmatrix_engine.brf import BrfExportError
+
+try:
+    write_brf_text("A", "artifacts/output.brf", profile, strict=True)
+except BrfExportError as exc:
+    print(exc.report["diagnostics"])
 ```
 
 ## Unicode Braille mapping
@@ -273,7 +169,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API. `v1.15.0` also keeps existing schemas stable because BRF-like export is a standalone API and does not alter render reports or benchmark rows. `v1.16.0` bumps the render schema to `1.11` because `brf` is now part of `artifact_manifest` and CLI reports can include `brf_export`. `v1.17.0` keeps render schema at `1.11` because profile presets only change helper defaults and selected profile names.
+`v1.18.0` keeps render schema at `1.11` because strict BRF diagnostics are added inside the existing `brf_export` section and do not change the top-level render report contract.
 
 ## Validation, quality, and benchmark layer
 
@@ -290,6 +186,7 @@ Current validation and quality reporting includes:
 - artifact manifest with path, kind, role, MIME, and existence diagnostics
 - generic embosser capacity, profile presets, and export-boundary validation
 - six-dot BRF-like export diagnostics for unsupported cells and non-Braille characters
+- BRF diagnostic severity summary by reason and severity
 - benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, memory-estimate, artifact-size, profile, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 

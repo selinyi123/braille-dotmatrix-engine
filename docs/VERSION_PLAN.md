@@ -158,7 +158,7 @@ Acceptance:
 
 ## v1.17.0 — Embosser profile presets
 
-Status: implemented in `feat/v1.17.0-embosser-profile-presets`.
+Status: merged to `main`.
 
 Goals:
 
@@ -177,18 +177,37 @@ Acceptance:
 
 ## v1.18.0 — BRF diagnostics hardening
 
+Status: implemented in `work-20260621-b`.
+
 Goals:
 
 - add strict BRF mode for unsupported cells,
 - split warning/error severity for non-Braille, 8-dot, and graphics-mode mismatches,
-- expose a compact diagnostics summary for CLI output,
-- preserve non-strict fallback behavior for exploratory rendering.
+- expose a compact diagnostics summary for CLI and Python reports,
+- preserve non-strict fallback behavior for exploratory rendering,
+- keep render schema stable at `1.11`.
 
 Acceptance:
 
-- `--strict-brf` can fail on unsupported BRF content,
-- reports include warning/error counts by reason,
-- non-strict mode remains backward compatible.
+- strict BRF mode can stop file writing when diagnostics are present,
+- reports include warning/error counts by reason and severity,
+- non-strict mode remains backward compatible,
+- tests cover warning/error grouping and strict API behavior.
+
+## v1.19.0 — BRF report ergonomics
+
+Goals:
+
+- add a compact CLI diagnostics summary line,
+- add optional JSON-only BRF validation mode,
+- restore detailed ASCII/artifact manifest regression coverage,
+- document recommended BRF validation workflow.
+
+Acceptance:
+
+- CLI can validate BRF export diagnostics without requiring users to inspect full JSON,
+- detailed regression tests cover artifact role, MIME, path, and existence contracts,
+- strict and non-strict report examples are documented.
 
 ## v2.0.0 — Semantic Braille Engine
 

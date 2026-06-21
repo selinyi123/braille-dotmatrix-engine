@@ -23,7 +23,7 @@ def test_process_image_ascii_report(tmp_path):
         tmp_path / 'report.json',
     )
     assert report['schema_version'] == '1.11'
-    assert report['package_version'] == '1.17.0'
+    assert report['package_version'].startswith('1.18')
     assert report['renderer']['strategy'] == 'AsciiMonoRenderer'
     assert report['ascii_render']['backend'] == 'ASCII_MONO'
     assert report['diagnostics']['braille_pipeline']['executed'] is False

@@ -3,7 +3,7 @@ import argparse, json
 from pathlib import Path
 from .engine import BrailleArtConfig, create_demo_image, process_image
 from .benchmark import run_benchmark_suite, write_benchmark_csv
-from .brf import attach_brf_artifact_to_report, write_brf_text
+from .brf import BrfExportError, attach_brf_artifact_to_report, write_brf_text
 from .embosser import build_embosser_profile, embosser_profile_names
 
 
@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--brf-profile", choices=embosser_profile_names(), default="a4-40x25", help="named BRF embosser profile preset")
     p.add_argument("--brf-cols", type=_positive_int, default=None, help="optional BRF cells per line override")
     p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
+    p.add_argument("--strict-brf", action="store_true", help="validate BRF diagnostics")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-invert", action="store_true")
     p.add_argument("--strict-tactile", action="store_true", help="fail tactile-mode export when tactile validation reports errors")
@@ -84,17 +85,17 @@ def main(argv: list[str] | None = None) -> int:
     if a.output_brf is not None:
         profile = build_embosser_profile(a.brf_profile, max_cols=a.brf_cols, max_rows=a.brf_rows)
         source_text = Path(a.output_txt).read_text(encoding='utf-8')
-        brf_report = write_brf_text(source_text, a.output_brf, profile)
-        report = attach_brf_artifact_to_report(
-            report,
-            output_brf=a.output_brf,
-            output_png=a.output_png,
-            output_txt=a.output_txt,
-            report_json=a.report_json,
-            output_svg=a.output_svg,
-            output_html=a.output_html,
-            brf_report=brf_report,
-        )
+        try:
+            brf_report = write_brf_text(source_text, a.output_brf, profile, strict=bool(a.strict_brf))
+        except BrfExportError as exc:
+            brf_report = dict(exc.report)
+            brf_report['path'] = str(a.output_brf)
+            brf_report['bytes'] = 0
+            report = attach_brf_artifact_to_report(report, output_brf=a.output_brf, output_png=a.output_png, output_txt=a.output_txt, report_json=a.report_json, output_svg=a.output_svg, output_html=a.output_html, brf_report=brf_report)
+            _write_report_json(report, a.report_json)
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+            return 2
+        report = attach_brf_artifact_to_report(report, output_brf=a.output_brf, output_png=a.output_png, output_txt=a.output_txt, report_json=a.report_json, output_svg=a.output_svg, output_html=a.output_html, brf_report=brf_report)
         _write_report_json(report, a.report_json)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0

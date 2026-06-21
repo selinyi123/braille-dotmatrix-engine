@@ -144,6 +144,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: add named capacity presets for common page layouts, keep manual overrides, and preserve the driver boundary. `--brf-profile` should select a preset, while `--brf-cols` and `--brf-rows` should remain explicit overrides.
 
+### 13. v1.18.0 research pass: BRF diagnostic severity
+
+New sources reviewed for this pass:
+
+- Braille ASCII / BRF references: BRF files are plain Braille ASCII with line and page controls, so validation should be deterministic and local.
+- Unicode Braille references: Unicode can encode 8-dot Braille, but BRF/Braille ASCII is six-dot oriented; dots 7 and 8 must be treated as errors rather than silent lossy export.
+- Braille pattern references: U+2800 blank is visually blank but not a normal text space, reinforcing the need for explicit mapping rather than generic whitespace handling.
+- GitHub searches for BRF diagnostics and exporter strict modes did not reveal a reusable library that cleanly fits this repository's existing offline artifact path.
+- Hacker News, Medium, LinkedIn, Reddit, X/Twitter, Zhihu, Stack Overflow, Lobsters, hackathon, and TCS Stack Exchange searches did not surface a stronger fit than reason-grouped diagnostics and a strict CLI/API path.
+
+Assessment for this repository: keep BRF export local and deterministic. Add warning/error severity, reason grouping, and strict mode. Do not introduce a translator dependency or live device API yet.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -160,4 +172,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 10. embosser page profiles, BRF export, and device-specific graphics modes,
 11. BRF pagination, six-dot compatibility diagnostics, and optional translator integration,
 12. BRF artifact/report contracts and CLI ergonomics,
-13. embosser profile presets, page-size capacity defaults, and profile override ergonomics.
+13. embosser profile presets, page-size capacity defaults, and profile override ergonomics,
+14. BRF diagnostic severity, strict export policy, and reason-grouped report contracts.
