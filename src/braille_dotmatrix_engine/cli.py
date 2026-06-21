@@ -60,12 +60,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--benchmark", action="store_true", help="run the benchmark suite instead of rendering one image")
     p.add_argument("--benchmark-csv", default="benchmark.csv")
     a = p.parse_args(argv)
-    _validate_brf_mode(p, a.mode, a.output_brf)
     if a.benchmark:
         rows = run_benchmark_suite(output_dir=Path(a.benchmark_csv).parent or Path('.'))
         write_benchmark_csv(rows, a.benchmark_csv)
         print(json.dumps({'benchmark_csv': a.benchmark_csv, 'rows': rows}, indent=2, ensure_ascii=False))
         return 0
+    _validate_brf_mode(p, a.mode, a.output_brf)
     for target in [a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html, a.output_brf]:
         if target is not None:
             Path(target).parent.mkdir(parents=True, exist_ok=True)
