@@ -3,6 +3,8 @@ import argparse, json
 from pathlib import Path
 from .engine import BrailleArtConfig, create_demo_image, process_image
 from .benchmark import run_benchmark_suite, write_benchmark_csv
+from .brf import attach_brf_artifact_to_report, write_brf_text
+from .embosser import GenericEmbosserProfile
 
 
 def _positive_int(value: str) -> int:
@@ -19,6 +21,10 @@ def _unit_float(value: str) -> float:
     return parsed
 
 
+def _write_report_json(report: dict, report_json: str) -> None:
+    Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Unicode Braille and ASCII visual-symbol renderer")
     p.add_argument("image", nargs="?")
@@ -29,6 +35,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--report-json", default="render_report.json")
     p.add_argument("--output-svg", default=None)
     p.add_argument("--output-html", default=None)
+    p.add_argument("--output-brf", default=None, help="optional six-dot Braille ASCII / BRF-like text artifact path")
+    p.add_argument("--brf-cols", type=_positive_int, default=None, help="optional BRF cells per line override")
+    p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-invert", action="store_true")
     p.add_argument("--strict-tactile", action="store_true", help="fail tactile-mode export when tactile validation reports errors")
@@ -46,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         write_benchmark_csv(rows, a.benchmark_csv)
         print(json.dumps({'benchmark_csv': a.benchmark_csv, 'rows': rows}, indent=2, ensure_ascii=False))
         return 0
-    for target in [a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html]:
+    for target in [a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html, a.output_brf]:
         if target is not None:
             Path(target).parent.mkdir(parents=True, exist_ok=True)
     image = a.image or create_demo_image("test_input.png")
@@ -71,6 +80,21 @@ def main(argv: list[str] | None = None) -> int:
     if a.braille_target_density is not None:
         cfg.braille_target_density = a.braille_target_density
     report = process_image(image, cfg, a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html)
+    if a.output_brf is not None:
+        profile = GenericEmbosserProfile(max_cols=a.brf_cols, max_rows=a.brf_rows)
+        source_text = Path(a.output_txt).read_text(encoding='utf-8')
+        brf_report = write_brf_text(source_text, a.output_brf, profile)
+        report = attach_brf_artifact_to_report(
+            report,
+            output_brf=a.output_brf,
+            output_png=a.output_png,
+            output_txt=a.output_txt,
+            report_json=a.report_json,
+            output_svg=a.output_svg,
+            output_html=a.output_html,
+            brf_report=brf_report,
+        )
+        _write_report_json(report, a.report_json)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0
 
