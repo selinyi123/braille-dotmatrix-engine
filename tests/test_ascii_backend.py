@@ -74,8 +74,8 @@ def test_process_image_ascii_report(tmp_path):
         None,
         html_path,
     )
-    assert report['schema_version'] == '1.9'
-    assert report['package_version'] == '1.11.0'
+    assert report['schema_version'] == '1.10'
+    assert report['package_version'] == '1.12.0'
     assert report['renderer']['strategy'] == 'AsciiMonoRenderer'
     assert report['ascii_render']['backend'] == 'ASCII_MONO'
     assert report['ascii_render']['charset_preset'] == 'standard'
@@ -85,6 +85,7 @@ def test_process_image_ascii_report(tmp_path):
     assert report['dither_method'] is None
     assert report['dots_shape'] is None
     assert report['braille_quality'] is None
+    assert report['artifact_manifest']['png']['exists'] is True
     assert (tmp_path / 'ascii.txt').exists()
     assert html_path.exists()
     assert Image.open(tmp_path / 'out.png').mode == 'RGB'
