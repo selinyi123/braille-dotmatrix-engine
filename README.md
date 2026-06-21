@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.14.0`
+`v1.15.0`
 
 ## Status
 
@@ -22,6 +22,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - renderer strategy runtime for mode-specific output behavior
 - artifact manifest and report adapter layer
 - generic embosser export boundary for page/device capacity metadata
+- conservative six-dot BRF-like text export with compatibility diagnostics
 - benchmark profiles for smoke, medium, and stress image sizes
 - benchmark memory estimates and artifact-size reporting
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
@@ -34,13 +35,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.14.0 embosser-export notes
+### v1.15.0 six-dot text export notes
 
-- Added `GenericEmbosserProfile` for page size, margins, cell dimensions, dot pitch, DPI, and device capability metadata.
-- Added `embosser_capacity()` to compute printable area, rows, columns, and cells per page.
-- Added `embosser_export_manifest()` to describe the intended output boundary without hard-coding a vendor driver.
-- Six-dot profiles are marked as portable text export candidates for BRF / Braille ASCII style workflows.
-- Eight-dot and graphics-mode profiles remain explicitly separated because many devices require proprietary control codes or device-specific graphics mode.
+- Added `unicode_braille_to_brf_text()` for conservative six-dot Unicode Braille to Braille ASCII / BRF-like text export.
+- Added `write_brf_text()` for ASCII-safe `.brf` artifact writing.
+- Export uses `GenericEmbosserProfile` capacity metadata to wrap lines and paginate with form-feed separators.
+- Dots 7 and 8 are reported as unsupported instead of being silently dropped.
+- Non-Braille characters are reported with line, column, codepoint, and reason diagnostics.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -191,6 +192,18 @@ print(embosser_capacity(profile))
 print(embosser_export_manifest(profile, output_path="out.brf", source_artifact="output.txt"))
 ```
 
+Export six-dot Braille text as a BRF-like artifact:
+
+```python
+from braille_dotmatrix_engine import GenericEmbosserProfile, unicode_braille_to_brf_text, write_brf_text
+
+profile = GenericEmbosserProfile(max_cols=40, max_rows=25)
+result = unicode_braille_to_brf_text("⠁⠃⠉", profile)
+print(result.text)
+print(result.report)
+write_brf_text("⠁⠃⠉", "artifacts/output.brf", profile)
+```
+
 ## Unicode Braille mapping
 
 The engine uses the official physical 8-dot Braille layout:
@@ -224,7 +237,7 @@ This means every 4x2 physical dot block can be encoded into one Unicode Braille 
 | `.json` | render report, metrics, validation status, config, Braille/ASCII quality diagnostics, and artifact manifest |
 | `.svg` | physical millimeter-space tactile vector export |
 | `.csv` | benchmark runtime / memory / quality table |
-| `.brf` | future six-dot Braille ASCII / BRF-style text export target |
+| `.brf` | six-dot Braille ASCII / BRF-like text export target |
 
 ## Version and schema policy
 
@@ -234,7 +247,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API.
+A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields. `v1.14.0` keeps existing schemas stable because embosser support is introduced as a standalone export-boundary API. `v1.15.0` also keeps existing schemas stable because BRF-like export is a standalone API and does not alter render reports or benchmark rows.
 
 ## Validation, quality, and benchmark layer
 
@@ -250,6 +263,7 @@ Current validation and quality reporting includes:
 - ASCII tone score, edge score, charset preset, PNG preview, and HTML availability
 - artifact manifest with path, kind, role, MIME, and existence diagnostics
 - generic embosser capacity and export-boundary validation
+- six-dot BRF-like export diagnostics for unsupported cells and non-Braille characters
 - benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, memory-estimate, artifact-size, profile, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 
