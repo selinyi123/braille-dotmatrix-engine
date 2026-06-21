@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .artifacts import artifact_manifest, legacy_artifact_paths
 from .braille_unicode import BRAILLE_BASE, decode_braille_cell
 from .embosser import GenericEmbosserProfile, assert_embosser_profile, embosser_capacity
 
@@ -99,3 +100,28 @@ def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile 
     report['path'] = str(path)
     report['bytes'] = path.stat().st_size
     return report
+
+
+def attach_brf_artifact_to_report(
+    report: dict[str, Any],
+    *,
+    output_brf: str | Path,
+    output_png=None,
+    output_txt=None,
+    report_json=None,
+    output_svg=None,
+    output_html=None,
+    brf_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    updated = dict(report)
+    output_png = output_png if output_png is not None else report.get('artifacts', {}).get('png')
+    output_txt = output_txt if output_txt is not None else report.get('artifacts', {}).get('txt')
+    report_json = report_json if report_json is not None else report.get('artifacts', {}).get('report_json')
+    output_svg = output_svg if output_svg is not None else report.get('artifacts', {}).get('svg')
+    output_html = output_html if output_html is not None else report.get('artifacts', {}).get('html')
+    manifest = artifact_manifest(output_png, output_txt, report_json, output_svg, output_html, output_brf)
+    updated['artifact_manifest'] = manifest
+    updated['artifacts'] = legacy_artifact_paths(manifest)
+    if brf_report is not None:
+        updated['brf_export'] = brf_report
+    return updated
