@@ -24,13 +24,14 @@ def _exists(path: str | Path | None) -> bool | None:
     return Path(path).exists()
 
 
-def artifact_manifest(output_png, output_txt, report_json, output_svg=None, output_html=None) -> dict[str, Any]:
+def artifact_manifest(output_png, output_txt, report_json, output_svg=None, output_html=None, output_brf=None) -> dict[str, Any]:
     specs = [
         ArtifactSpec('png', output_png, 'image', 'primary visual or tactile raster', 'image/png'),
         ArtifactSpec('txt', output_txt, 'text', 'copyable text output', 'text/plain'),
         ArtifactSpec('report_json', report_json, 'report', 'machine-readable render report', 'application/json'),
         ArtifactSpec('svg', output_svg, 'vector', 'physical millimeter-space tactile vector export', 'image/svg+xml'),
         ArtifactSpec('html', output_html, 'preview', 'browser-previewable ASCII artifact', 'text/html'),
+        ArtifactSpec('brf', output_brf, 'text', 'six-dot Braille ASCII / BRF-like export', 'application/x-brf'),
     ]
     return {
         spec.key: {
