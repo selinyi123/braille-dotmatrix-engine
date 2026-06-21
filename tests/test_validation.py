@@ -38,6 +38,8 @@ def test_invalid_chromatic_parameters_rejected():
     [
         ("output_width_cells", 80.5),
         ("render_spacing_px", 10.5),
+        ("max_output_width_cells", 320.5),
+        ("max_total_dots", 2_000_000.5),
         ("clahe_grid_size", 8.5),
         ("tile_size_px", 512.5),
         ("tile_overlap_px", 64.5),
@@ -57,4 +59,16 @@ def test_fractional_integer_config_values_are_rejected(field, value):
 def test_boolean_integer_config_values_are_rejected():
     cfg = BrailleArtConfig(output_width_cells=True)
     with pytest.raises(ValueError, match="output_width_cells"):
+        validate_config(cfg)
+
+
+def test_output_width_cells_must_not_exceed_configured_limit():
+    cfg = BrailleArtConfig(output_width_cells=321, max_output_width_cells=320)
+    with pytest.raises(ValueError, match="max_output_width_cells"):
+        validate_config(cfg)
+
+
+def test_max_total_dots_must_be_positive():
+    cfg = BrailleArtConfig(max_total_dots=0)
+    with pytest.raises(ValueError, match="max_total_dots"):
         validate_config(cfg)
