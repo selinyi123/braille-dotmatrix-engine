@@ -177,7 +177,7 @@ Acceptance:
 
 ## v1.18.0 — BRF diagnostics hardening
 
-Status: implemented in `work-20260621-b`.
+Status: merged to `main`.
 
 Goals:
 
@@ -196,18 +196,37 @@ Acceptance:
 
 ## v1.19.0 — BRF report ergonomics
 
+Status: implemented in `work-20260621-c`.
+
 Goals:
 
 - add a compact CLI diagnostics summary line,
 - add optional JSON-only BRF validation mode,
-- restore detailed ASCII/artifact manifest regression coverage,
-- document recommended BRF validation workflow.
+- restore detailed artifact manifest regression coverage,
+- document recommended BRF validation workflow,
+- keep render schema stable at `1.11`.
 
 Acceptance:
 
-- CLI can validate BRF export diagnostics without requiring users to inspect full JSON,
-- detailed regression tests cover artifact role, MIME, path, and existence contracts,
-- strict and non-strict report examples are documented.
+- CLI can validate BRF export diagnostics without writing a BRF file,
+- reports include a compact `summary` string,
+- detailed regression tests cover artifact kind, MIME, path, and existence contracts,
+- validation-only reports preserve `brf_export` without creating a `.brf` artifact.
+
+## v1.20.0 — BRF preflight input mode
+
+Goals:
+
+- validate an existing Unicode Braille text file without rendering an image,
+- support a dedicated BRF validation command path,
+- emit JSON report and compact summary from a text-only input,
+- keep render pipeline and text validation pipeline separate.
+
+Acceptance:
+
+- users can validate BRF compatibility before image processing,
+- text-only validation does not write PNG artifacts,
+- strict and non-strict results are deterministic and scriptable.
 
 ## v2.0.0 — Semantic Braille Engine
 
