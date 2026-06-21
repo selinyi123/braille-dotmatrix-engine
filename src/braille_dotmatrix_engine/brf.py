@@ -73,6 +73,18 @@ def summarize_brf_diagnostics(unsupported: list[dict[str, Any]]) -> dict[str, An
     }
 
 
+def brf_report_summary(report: dict[str, Any]) -> str:
+    diagnostics = report.get('diagnostics', {})
+    reasons = diagnostics.get('by_reason', {}) or {}
+    reason_text = ','.join(f'{key}:{value}' for key, value in sorted(reasons.items())) or 'none'
+    status = 'ok' if report.get('ok') else 'issues'
+    return (
+        f"BRF {status}; profile={report.get('profile')}; pages={report.get('pages')}; "
+        f"cols={report.get('cols')}; rows={report.get('rows')}; "
+        f"warnings={report.get('warning_count', 0)}; errors={report.get('error_count', 0)}; reasons={reason_text}"
+    )
+
+
 def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> BrfExportResult:
     profile = profile or GenericEmbosserProfile()
     assert_embosser_profile(profile)
@@ -124,6 +136,7 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
         'output_lines': len(converted_lines),
         'pages': pages,
         'strict': strict,
+        'validate_only': False,
         'unsupported_count': len(unsupported),
         'warning_count': diagnostics['warning_count'],
         'error_count': diagnostics['error_count'],
@@ -131,9 +144,23 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
         'unsupported': unsupported,
         'ok': diagnostics['error_count'] == 0 and (not strict or diagnostics['total'] == 0),
     }
+    report['summary'] = brf_report_summary(report)
     if strict and diagnostics['total'] > 0:
         raise BrfExportError(report)
     return BrfExportResult(text=brf_text, report=report)
+
+
+def validate_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> dict[str, Any]:
+    try:
+        result = unicode_braille_to_brf_text(text, profile, strict=strict)
+        report = dict(result.report)
+    except BrfExportError as exc:
+        report = dict(exc.report)
+    report['validate_only'] = True
+    report['path'] = None
+    report['bytes'] = 0
+    report['summary'] = brf_report_summary(report)
+    return report
 
 
 def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> dict[str, Any]:
@@ -144,13 +171,14 @@ def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile 
     report = dict(result.report)
     report['path'] = str(path)
     report['bytes'] = path.stat().st_size
+    report['summary'] = brf_report_summary(report)
     return report
 
 
 def attach_brf_artifact_to_report(
     report: dict[str, Any],
     *,
-    output_brf: str | Path,
+    output_brf: str | Path | None,
     output_png=None,
     output_txt=None,
     report_json=None,
