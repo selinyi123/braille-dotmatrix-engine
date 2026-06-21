@@ -5,6 +5,7 @@ from .ascii_backend import ASCII_PRESETS, render_ascii_html, render_ascii_png, r
 from .braille_enhance import enhance_sampled_values
 from .braille_quality import analyze_braille_quality, apply_density_control
 from .geometry import compensated_dot_radius_mm, dot_radius_report
+from .renderers import RenderContext, RenderResult, get_renderer, renderer_names
 from .schema import BENCHMARK_SCHEMA_VERSION, PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 from .validation import VALID_DITHER_METHODS, VALID_RENDER_MODES, validate_config
 from .braille_unicode import (
@@ -40,6 +41,10 @@ __all__ = [
     'analyze_braille_quality',
     'compensated_dot_radius_mm',
     'dot_radius_report',
+    'RenderContext',
+    'RenderResult',
+    'get_renderer',
+    'renderer_names',
     'PACKAGE_VERSION',
     'RENDER_SCHEMA_VERSION',
     'BENCHMARK_SCHEMA_VERSION',
