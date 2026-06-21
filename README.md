@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.12.0`
+`v1.13.0`
 
 ## Status
 
@@ -21,6 +21,8 @@ This repository is currently in the **V1 engineering prototype** stage:
 - tactile, screen, `CHROMATIC`, `ASCII_MONO`, and `ASCII_COLOR` rendering modes
 - renderer strategy runtime for mode-specific output behavior
 - artifact manifest and report adapter layer
+- benchmark profiles for smoke, medium, and stress image sizes
+- benchmark memory estimates and artifact-size reporting
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - PNG, TXT, JSON report, optional SVG/HTML export, and benchmark CSV output
 - dedicated benchmark smoke job with uploaded benchmark artifacts
@@ -31,13 +33,14 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.12.0 report-and-artifact notes
+### v1.13.0 benchmark-and-memory notes
 
-- Render reports now include `artifact_manifest` with path, kind, role, MIME type, and file-existence diagnostics.
-- Legacy `artifacts` path fields are preserved for compatibility.
-- `pipeline.py` delegates artifact directory preparation to `artifacts.py`.
-- `pipeline.py` delegates base report creation and compatibility adaptation to `reports.py`.
-- Render schema is bumped to `1.10` because report structure now includes the artifact manifest.
+- The benchmark module now supports `smoke`, `medium`, and `stress` profiles.
+- The `medium` profile includes 720p and 1080p synthetic images.
+- The `stress` profile includes a 4K synthetic image and remains opt-in.
+- Benchmark rows include input pixels, megapixels, estimated input memory, estimated working-set memory, and per-artifact byte sizes.
+- Benchmark summary JSON now aggregates profiles, maximum estimated working set, and total artifact bytes.
+- Benchmark schema is bumped to `1.11`.
 
 The next major direction is **Semantic Braille Engine**: image regions should be weighted by semantic importance before tactile/Braille export.
 
@@ -122,9 +125,17 @@ Run the dedicated benchmark module used by CI:
 
 ```bash
 python -m braille_dotmatrix_engine.benchmark \
+  --profile smoke \
   --output-dir artifacts/benchmarks \
   --csv artifacts/benchmarks/benchmark.csv \
   --summary artifacts/benchmarks/benchmark_summary.json
+```
+
+Run larger benchmark profiles manually:
+
+```bash
+python -m braille_dotmatrix_engine.benchmark --profile medium --no-ascii
+python -m braille_dotmatrix_engine.benchmark --profile stress --no-ascii --max-runtime-sec 300 --max-rss-mb 8192
 ```
 
 ## Python API
@@ -212,7 +223,7 @@ Package version, render schema version, and benchmark schema version are intenti
 - `schema_version`: JSON render-report schema version.
 - `benchmark_schema_version`: benchmark artifact schema version.
 
-A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract.
+A patch release may keep the report schema stable while changing implementation details. `v1.12.0` bumps the render schema because `artifact_manifest` is now part of the report contract. `v1.13.0` bumps the benchmark schema because benchmark rows now include profile, memory-estimate, and artifact-size fields.
 
 ## Validation, quality, and benchmark layer
 
@@ -227,7 +238,7 @@ Current validation and quality reporting includes:
 - Braille tile seam diagnostics
 - ASCII tone score, edge score, charset preset, PNG preview, and HTML availability
 - artifact manifest with path, kind, role, MIME, and existence diagnostics
-- benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, and schema fields
+- benchmark CSV artifact with runtime, RSS, occupancy, tone, edge, memory-estimate, artifact-size, profile, and schema fields
 - deterministic density correction using `np.random.default_rng(seed)`
 
 ## Design direction
