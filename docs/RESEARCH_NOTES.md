@@ -4,7 +4,7 @@ Purpose: keep external research close to the repository so future planning avoid
 
 ## Scope
 
-Core target remains: visual input to Unicode Braille, tactile dot-matrix exports, ASCII/HTML previews, SVG/PNG artifacts, validation reports, and future semantic tactile graphics.
+Core target remains: visual input to Unicode Braille, tactile dot-matrix exports, ASCII/HTML previews, SVG/PNG/BRF artifacts, validation reports, and future semantic tactile graphics.
 
 ## Findings
 
@@ -120,6 +120,18 @@ New sources reviewed for this pass:
 
 Assessment for this repository: implement six-dot BRF-like export as a pure text artifact, not as a translator or device driver. Use the embosser profile from v1.14.0 only for wrapping and pagination.
 
+### 11. v1.16.0 research pass: BRF artifact manifest and CLI integration
+
+New sources reviewed for this pass:
+
+- Braille ASCII references: BRF is a plain artifact format rather than a live device protocol, so it belongs in artifact/report integration before any device API.
+- Braille embosser references: embossers vary across single-sided, interpoint, 6-dot, and 8-dot devices, supporting the choice to keep renderer semantics separate from BRF artifact generation.
+- BrlAPI references: live braille device control is a different abstraction layer and should remain future work.
+- GitHub searches found BRF export examples in adjacent accessibility tooling, but no reusable component that supersedes this repository's existing `write_brf_text()` pipeline-adjacent route.
+- Stack Overflow, Lobsters, Reddit, X/Twitter, Zhihu, hackathon, and TCS Stack Exchange searches did not surface a stronger architecture than CLI-level artifact integration plus explicit report diagnostics.
+
+Assessment for this repository: integrate BRF at the artifact boundary. Do not add a new renderer mode. Let CLI generate a BRF-like artifact after rendering, then update `artifact_manifest`, legacy `artifacts`, and `brf_export` in the report JSON.
+
 ## Non-duplication rule for future research
 
 Do not repeat generic `image to braille converter` discovery unless checking for major new repositories. New research should focus on one slice per pass:
@@ -134,4 +146,5 @@ Do not repeat generic `image to braille converter` discovery unless checking for
 8. artifact manifests and interactive tactile metadata,
 9. benchmark profiles, memory models, and artifact-size accounting,
 10. embosser page profiles, BRF export, and device-specific graphics modes,
-11. BRF pagination, six-dot compatibility diagnostics, and optional translator integration.
+11. BRF pagination, six-dot compatibility diagnostics, and optional translator integration,
+12. BRF artifact/report contracts and CLI ergonomics.

@@ -34,7 +34,7 @@ def test_generic_embosser_capacity_report():
 def test_embosser_manifest_for_six_dot_text_export():
     profile = GenericEmbosserProfile(name='six-dot')
     manifest = embosser_export_manifest(profile, output_path='out.brf', source_artifact='out.txt')
-    assert PACKAGE_VERSION == '1.15.0'
+    assert PACKAGE_VERSION == '1.16.0'
     assert manifest['ok'] is True
     assert manifest['encoding_family'] == 'BRF_OR_BRAILLE_ASCII'
     assert manifest['portable_text_export'] is True

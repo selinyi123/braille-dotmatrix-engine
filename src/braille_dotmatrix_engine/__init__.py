@@ -3,7 +3,7 @@ from .pipeline import create_demo_image, process_image
 from .chromatic import build_chromatic_array, render_chromatic_png
 from .ascii_backend import ASCII_PRESETS, render_ascii_html, render_ascii_png, render_ascii_text, resolve_ascii_charset, write_ascii_output
 from .artifacts import artifact_manifest, legacy_artifact_paths, prepare_artifact_dirs
-from .brf import BRAILLE_ASCII_BY_CHAR, BRAILLE_ASCII_BY_MASK, BrfExportResult, unicode_braille_to_brf_text, write_brf_text
+from .brf import BRAILLE_ASCII_BY_CHAR, BRAILLE_ASCII_BY_MASK, BrfExportResult, attach_brf_artifact_to_report, unicode_braille_to_brf_text, write_brf_text
 from .embosser import (
     GenericEmbosserProfile,
     assert_embosser_profile,
@@ -53,6 +53,7 @@ __all__ = [
     'BRAILLE_ASCII_BY_CHAR',
     'BRAILLE_ASCII_BY_MASK',
     'BrfExportResult',
+    'attach_brf_artifact_to_report',
     'unicode_braille_to_brf_text',
     'write_brf_text',
     'GenericEmbosserProfile',

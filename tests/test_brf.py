@@ -6,6 +6,7 @@ from braille_dotmatrix_engine import (
     BRAILLE_ASCII_BY_CHAR,
     BRAILLE_ASCII_BY_MASK,
     GenericEmbosserProfile,
+    attach_brf_artifact_to_report,
     encode_braille_cell,
     unicode_braille_to_brf_text,
     write_brf_text,
@@ -24,7 +25,7 @@ def test_braille_ascii_mask_table_basics():
 def test_unicode_braille_to_sixdot_text_basic_mapping():
     text = '⠁⠃ ⠉'
     result = unicode_braille_to_brf_text(text, GenericEmbosserProfile(max_cols=20, max_rows=20))
-    assert PACKAGE_VERSION == '1.15.0'
+    assert PACKAGE_VERSION == '1.16.0'
     assert result.text == 'AB C'
     assert result.report['ok'] is True
     assert result.report['encoding'] == 'BRAILLE_ASCII_SIX_DOT'
@@ -66,3 +67,21 @@ def test_write_sixdot_text(tmp_path: Path):
     assert report['path'].endswith('out.brf')
     assert report['bytes'] == 2
     assert report['ok'] is True
+
+
+def test_attach_brf_artifact_to_report(tmp_path: Path):
+    brf_path = tmp_path / 'out.brf'
+    brf_report = write_brf_text('⠁⠃', brf_path, GenericEmbosserProfile(max_cols=20, max_rows=20))
+    report = {
+        'artifacts': {
+            'png': str(tmp_path / 'out.png'),
+            'txt': str(tmp_path / 'out.txt'),
+            'report_json': str(tmp_path / 'report.json'),
+            'svg': None,
+            'html': None,
+        }
+    }
+    updated = attach_brf_artifact_to_report(report, output_brf=brf_path, brf_report=brf_report)
+    assert updated['artifacts']['brf'].endswith('out.brf')
+    assert updated['artifact_manifest']['brf']['exists'] is True
+    assert updated['brf_export']['bytes'] == 2

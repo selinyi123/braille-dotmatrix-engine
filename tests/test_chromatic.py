@@ -22,8 +22,8 @@ def test_process_image_chromatic_report(tmp_path):
     image = create_demo_image(tmp_path / 'demo.png', size=96)
     report_path = tmp_path / 'report.json'
     report = process_image(image, BrailleArtConfig(output_width_cells=12, mode='CHROMATIC'), tmp_path / 'out.png', tmp_path / 'out.txt', report_path)
-    assert report['schema_version'] == '1.10'
-    assert report['package_version'] == '1.15.0'
+    assert report['schema_version'] == '1.11'
+    assert report['package_version'] == '1.16.0'
     assert report['mode'] == 'CHROMATIC'
     assert report['renderer']['backend'] == 'CHROMATIC'
     assert report['renderer']['strategy'] == 'ChromaticRenderer'
@@ -32,6 +32,7 @@ def test_process_image_chromatic_report(tmp_path):
     assert report['chromatic_render']['backend'] == 'CHROMATIC'
     assert report['validation']['raster_roundtrip']['ok'] is None
     assert report['artifact_manifest']['png']['exists'] is True
+    assert report['artifact_manifest']['brf']['path'] is None
     assert (tmp_path / 'out.png').exists()
     loaded = cv2.imread(str(tmp_path / 'out.png'))
     assert loaded is not None
