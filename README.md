@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.20.0`
+`v1.21.0`
 
 ## Status
 
@@ -22,6 +22,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - conservative six-dot BRF-like text export with compatibility diagnostics
 - compact BRF report summary and validation-only CLI mode
 - text-only BRF preflight mode for existing Unicode Braille TXT files
+- checked-in BRF example fixtures for valid, warning, and error cases
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - centralized render/benchmark schema constants
@@ -30,13 +31,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.20.0 BRF preflight input notes
+### v1.21.0 BRF fixture notes
 
-- Added CLI flag `--brf-preflight <txt>` for validating an existing Unicode Braille text file.
-- Preflight mode skips the image renderer and emits `mode=BRF_PREFLIGHT`.
-- Preflight reports include the source TXT path in the artifact manifest.
-- Strict preflight returns exit code `2` when diagnostics are present.
-- Render schema remains `1.11` because the report uses the existing artifact manifest and `brf_export` contract.
+- Added `examples/brf/valid_six_dot.txt`.
+- Added `examples/brf/eight_dot_error.txt`.
+- Added `examples/brf/non_braille_warning.txt`.
+- Added `examples/brf/README.md` with expected summary prefixes and CLI examples.
+- Added tests that read the checked-in fixtures and validate summary / reason grouping.
 
 ## Install
 
@@ -57,34 +58,22 @@ braille-dotmatrix input.png \
   --report-json artifacts/render_report.json
 ```
 
-Render tactile mode and add a BRF-like artifact:
-
-```bash
-braille-dotmatrix input.png \
-  --mode TACTILE \
-  --output-brf artifacts/output_braille.brf \
-  --brf-profile a4-40x25 \
-  --report-json artifacts/render_report.json
-```
-
-Validate BRF diagnostics after rendering:
-
-```bash
-braille-dotmatrix input.png \
-  --mode TACTILE \
-  --brf-validate-only \
-  --brf-print-summary \
-  --report-json artifacts/render_report.json
-```
-
 Validate an existing Unicode Braille text file:
 
 ```bash
 braille-dotmatrix \
-  --brf-preflight artifacts/output_braille.txt \
+  --brf-preflight examples/brf/valid_six_dot.txt \
   --brf-profile a4-40x25 \
   --brf-print-summary \
   --report-json artifacts/brf_preflight_report.json
+```
+
+Expected fixture summaries:
+
+```text
+valid_six_dot.txt      -> BRF ok;
+eight_dot_error.txt   -> BRF issues; ... dots_7_or_8_not_supported:1
+non_braille_warning.txt -> BRF issues; ... non_braille_character:1
 ```
 
 Run smoke benchmarks:
@@ -96,15 +85,13 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv
 ## Python API
 
 ```python
-from braille_dotmatrix_engine import build_embosser_profile, unicode_braille_to_brf_text, write_brf_text
+from pathlib import Path
+from braille_dotmatrix_engine import build_embosser_profile
 from braille_dotmatrix_engine.brf import validate_brf_text
 
 profile = build_embosser_profile("a4-40x25")
-result = unicode_braille_to_brf_text("⠁⠃⠉", profile)
-print(result.text)
-print(result.report["summary"])
-write_brf_text("⠁⠃⠉", "artifacts/output.brf", profile)
-print(validate_brf_text("⠁⠃⠉", profile)["summary"])
+text = Path("examples/brf/valid_six_dot.txt").read_text(encoding="utf-8")
+print(validate_brf_text(text, profile)["summary"])
 ```
 
 ## Unicode Braille mapping
@@ -141,7 +128,7 @@ bit6 bit7
 
 ## Version and schema policy
 
-Package version, render schema version, and benchmark schema version are intentionally independent. `v1.20.0` keeps render schema at `1.11`.
+Package version, render schema version, and benchmark schema version are intentionally independent. `v1.21.0` keeps render schema at `1.11`.
 
 ## Design direction
 
