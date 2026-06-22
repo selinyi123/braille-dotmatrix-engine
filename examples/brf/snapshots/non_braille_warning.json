@@ -1,0 +1,32 @@
+{
+  "summary": "BRF issues; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=1; errors=0; reasons=non_braille_character:1",
+  "ok": true,
+  "validate_only": true,
+  "unsupported_count": 1,
+  "warning_count": 1,
+  "error_count": 0,
+  "diagnostics": {
+    "total": 1,
+    "warning_count": 1,
+    "error_count": 0,
+    "by_reason": {
+      "non_braille_character": 1
+    },
+    "by_severity": {
+      "warning": 1,
+      "error": 0
+    },
+    "has_errors": false,
+    "has_warnings": true
+  },
+  "unsupported": [
+    {
+      "line": 1,
+      "column": 1,
+      "char": "A",
+      "codepoint": "U+0041",
+      "reason": "non_braille_character",
+      "severity": "warning"
+    }
+  ]
+}
