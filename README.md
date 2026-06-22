@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.22.0`
+`v1.23.0`
 
 ## Status
 
@@ -24,6 +24,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - text-only BRF preflight mode for existing Unicode Braille TXT files
 - batch BRF preflight for fixture and artifact directories
 - checked-in BRF example fixtures for valid, warning, and error cases
+- JSON contract fixtures for BRF report regression tests
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - centralized render/benchmark schema constants
@@ -32,13 +33,12 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.22.0 BRF batch preflight notes
+### v1.23.0 BRF JSON contract notes
 
-- Added CLI flag `--brf-preflight-batch <path>`.
-- Added `--brf-batch-pattern`, defaulting to `*.txt` for directory inputs.
-- Batch reports use `mode=BRF_PREFLIGHT_BATCH`.
-- Batch reports include aggregate file counts and per-file summaries.
-- Strict batch preflight returns exit code `2` when any file has diagnostics.
+- Added `examples/brf/snapshots/*.json` contract files.
+- Covered valid six-dot, eight-dot error, non-Braille warning, and batch aggregate reports.
+- Added tests that compare normalized runtime reports with the checked-in JSON contracts.
+- Kept render schema at `1.11` because the top-level report schema is unchanged.
 
 ## Install
 
@@ -67,12 +67,6 @@ braille-dotmatrix \
   --report-json artifacts/brf_batch_report.json
 ```
 
-Expected fixture aggregate:
-
-```text
-files=3; ok=1; warnings=1; errors=1; issue_files=2
-```
-
 Run smoke benchmarks:
 
 ```bash
@@ -83,23 +77,25 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv
 
 ```python
 from pathlib import Path
+from braille_dotmatrix_engine.brf import validate_brf_text
 from braille_dotmatrix_engine.brf_batch import resolve_brf_input_paths, validate_brf_files
 
+single = validate_brf_text(Path("examples/brf/valid_six_dot.txt").read_text(encoding="utf-8"))
 paths = resolve_brf_input_paths(Path("examples/brf"), "*.txt")
-report = validate_brf_files(paths)
-print(report["aggregate"])
+batch = validate_brf_files(paths)
+print(single["summary"])
+print(batch["aggregate"])
 ```
 
-## Unicode Braille mapping
+## JSON contracts
 
-The engine uses the official physical 8-dot Braille layout:
+Checked-in BRF report contracts live under:
 
 ```text
-1 4
-2 5
-3 6
-7 8
+examples/brf/snapshots/
 ```
+
+These files intentionally store only stable report fields used for regression tests.
 
 ## Outputs
 
@@ -115,7 +111,7 @@ The engine uses the official physical 8-dot Braille layout:
 
 ## Version and schema policy
 
-Package version, render schema version, and benchmark schema version are intentionally independent. `v1.22.0` keeps render schema at `1.11`.
+Package version, render schema version, and benchmark schema version are intentionally independent. `v1.23.0` keeps render schema at `1.11`.
 
 ## Tests
 
