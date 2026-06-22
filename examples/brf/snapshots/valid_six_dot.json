@@ -1,0 +1,21 @@
+{
+  "summary": "BRF ok; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=0; errors=0; reasons=none",
+  "ok": true,
+  "validate_only": true,
+  "unsupported_count": 0,
+  "warning_count": 0,
+  "error_count": 0,
+  "diagnostics": {
+    "total": 0,
+    "warning_count": 0,
+    "error_count": 0,
+    "by_reason": {},
+    "by_severity": {
+      "warning": 0,
+      "error": 0
+    },
+    "has_errors": false,
+    "has_warnings": false
+  },
+  "unsupported": []
+}
