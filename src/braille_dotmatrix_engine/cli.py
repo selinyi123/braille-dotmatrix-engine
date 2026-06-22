@@ -4,6 +4,7 @@ from pathlib import Path
 from .engine import BrailleArtConfig, create_demo_image, process_image
 from .benchmark import run_benchmark_suite, write_benchmark_csv
 from .brf import BrfExportError, attach_brf_artifact_to_report, validate_brf_text, write_brf_text
+from .brf_batch import resolve_brf_input_paths, validate_brf_files
 from .embosser import build_embosser_profile, embosser_profile_names
 from .schema import PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 
@@ -35,42 +36,41 @@ def _validate_brf_mode(parser: argparse.ArgumentParser, mode: str, output_brf: s
         parser.error(f'BRF output requires a Braille-backed mode: {allowed}')
 
 
+def _base_preflight_report(mode: str, strategy: str, reason: str) -> dict:
+    return {
+        'package_version': PACKAGE_VERSION,
+        'schema_version': RENDER_SCHEMA_VERSION,
+        'mode': mode,
+        'renderer': {'strategy': strategy, 'backend': 'BRF_TEXT', 'braille_pipeline_executed': False},
+        'diagnostics': {'braille_pipeline': {'executed': False, 'reason': reason}},
+    }
+
+
 def _run_brf_preflight(args) -> int:
     source_path = Path(args.brf_preflight)
     profile = build_embosser_profile(args.brf_profile, max_cols=args.brf_cols, max_rows=args.brf_rows)
-    source_text = source_path.read_text(encoding='utf-8')
-    brf_report = validate_brf_text(source_text, profile, strict=bool(args.strict_brf))
-    report = {
-        'package_version': PACKAGE_VERSION,
-        'schema_version': RENDER_SCHEMA_VERSION,
-        'mode': 'BRF_PREFLIGHT',
-        'renderer': {
-            'strategy': 'BrfPreflight',
-            'backend': 'BRF_TEXT',
-            'braille_pipeline_executed': False,
-        },
-        'diagnostics': {
-            'braille_pipeline': {
-                'executed': False,
-                'reason': 'text-only BRF preflight',
-            }
-        },
-    }
-    report = attach_brf_artifact_to_report(
-        report,
-        output_brf=None,
-        output_png=None,
-        output_txt=source_path,
-        report_json=args.report_json,
-        output_svg=None,
-        output_html=None,
-        brf_report=brf_report,
-    )
+    brf_report = validate_brf_text(source_path.read_text(encoding='utf-8'), profile, strict=bool(args.strict_brf))
+    report = _base_preflight_report('BRF_PREFLIGHT', 'BrfPreflight', 'text-only BRF preflight')
+    report = attach_brf_artifact_to_report(report, output_brf=None, output_png=None, output_txt=source_path, report_json=args.report_json, output_svg=None, output_html=None, brf_report=brf_report)
     _write_report_json(report, args.report_json)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if args.brf_print_summary:
         print(brf_report['summary'])
     return 2 if args.strict_brf and brf_report['diagnostics']['total'] > 0 else 0
+
+
+def _run_brf_preflight_batch(args) -> int:
+    profile = build_embosser_profile(args.brf_profile, max_cols=args.brf_cols, max_rows=args.brf_rows)
+    paths = resolve_brf_input_paths(args.brf_preflight_batch, args.brf_batch_pattern)
+    batch = validate_brf_files(paths, profile, strict=bool(args.strict_brf))
+    report = _base_preflight_report('BRF_PREFLIGHT_BATCH', 'BrfPreflightBatch', 'batch text-only BRF preflight')
+    report['batch'] = {'root': str(args.brf_preflight_batch), 'pattern': args.brf_batch_pattern, **batch}
+    _write_report_json(report, args.report_json)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.brf_print_summary:
+        agg = report['batch']['aggregate']
+        print(f"BRF batch; files={agg['total_files']}; ok={agg['ok_files']}; warnings={agg['warning_count']}; errors={agg['error_count']}; issue_files={agg['issue_files']}")
+    return 2 if args.strict_brf and report['batch']['aggregate']['issue_files'] > 0 else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -90,6 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--strict-brf", action="store_true", help="validate BRF diagnostics")
     p.add_argument("--brf-validate-only", action="store_true", help="add BRF diagnostics to the report without writing a BRF file")
     p.add_argument("--brf-preflight", default=None, help="validate an existing Unicode Braille text file without rendering an image")
+    p.add_argument("--brf-preflight-batch", default=None, help="validate a file or directory of Unicode Braille text files")
+    p.add_argument("--brf-batch-pattern", default="*.txt", help="glob pattern for directory batch preflight")
     p.add_argument("--brf-print-summary", action="store_true", help="print a compact BRF summary line after JSON output")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-invert", action="store_true")
@@ -110,18 +112,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if a.brf_preflight is not None:
         return _run_brf_preflight(a)
+    if a.brf_preflight_batch is not None:
+        return _run_brf_preflight_batch(a)
     _validate_brf_mode(p, a.mode, a.output_brf, bool(a.brf_validate_only))
     for target in [a.output_png, a.output_txt, a.report_json, a.output_svg, a.output_html, a.output_brf]:
         if target is not None:
             Path(target).parent.mkdir(parents=True, exist_ok=True)
     image = a.image or create_demo_image("test_input.png")
-    cfg = BrailleArtConfig(
-        output_width_cells=a.width_cells,
-        mode=a.mode,
-        seed=a.seed,
-        invert_luminance=not a.no_invert,
-        strict_tactile_validation=bool(a.strict_tactile),
-    )
+    cfg = BrailleArtConfig(output_width_cells=a.width_cells, mode=a.mode, seed=a.seed, invert_luminance=not a.no_invert, strict_tactile_validation=bool(a.strict_tactile))
     if a.ascii_charset is not None:
         cfg.ascii_charset = a.ascii_charset
         cfg.ascii_charset_preset = 'custom'
