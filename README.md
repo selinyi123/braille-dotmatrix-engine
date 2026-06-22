@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.21.0`
+`v1.22.0`
 
 ## Status
 
@@ -22,6 +22,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - conservative six-dot BRF-like text export with compatibility diagnostics
 - compact BRF report summary and validation-only CLI mode
 - text-only BRF preflight mode for existing Unicode Braille TXT files
+- batch BRF preflight for fixture and artifact directories
 - checked-in BRF example fixtures for valid, warning, and error cases
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
@@ -31,13 +32,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.21.0 BRF fixture notes
+### v1.22.0 BRF batch preflight notes
 
-- Added `examples/brf/valid_six_dot.txt`.
-- Added `examples/brf/eight_dot_error.txt`.
-- Added `examples/brf/non_braille_warning.txt`.
-- Added `examples/brf/README.md` with expected summary prefixes and CLI examples.
-- Added tests that read the checked-in fixtures and validate summary / reason grouping.
+- Added CLI flag `--brf-preflight-batch <path>`.
+- Added `--brf-batch-pattern`, defaulting to `*.txt` for directory inputs.
+- Batch reports use `mode=BRF_PREFLIGHT_BATCH`.
+- Batch reports include aggregate file counts and per-file summaries.
+- Strict batch preflight returns exit code `2` when any file has diagnostics.
 
 ## Install
 
@@ -47,33 +48,29 @@ pip install -e ".[dev]"
 
 ## CLI usage
 
-Render an input image in tactile mode:
-
-```bash
-braille-dotmatrix input.png \
-  --width-cells 100 \
-  --mode TACTILE \
-  --output-png artifacts/output_braille.png \
-  --output-txt artifacts/output_braille.txt \
-  --report-json artifacts/render_report.json
-```
-
-Validate an existing Unicode Braille text file:
+Validate one existing Unicode Braille text file:
 
 ```bash
 braille-dotmatrix \
   --brf-preflight examples/brf/valid_six_dot.txt \
-  --brf-profile a4-40x25 \
   --brf-print-summary \
   --report-json artifacts/brf_preflight_report.json
 ```
 
-Expected fixture summaries:
+Validate a directory of Unicode Braille text files:
+
+```bash
+braille-dotmatrix \
+  --brf-preflight-batch examples/brf \
+  --brf-batch-pattern "*.txt" \
+  --brf-print-summary \
+  --report-json artifacts/brf_batch_report.json
+```
+
+Expected fixture aggregate:
 
 ```text
-valid_six_dot.txt      -> BRF ok;
-eight_dot_error.txt   -> BRF issues; ... dots_7_or_8_not_supported:1
-non_braille_warning.txt -> BRF issues; ... non_braille_character:1
+files=3; ok=1; warnings=1; errors=1; issue_files=2
 ```
 
 Run smoke benchmarks:
@@ -86,12 +83,11 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv
 
 ```python
 from pathlib import Path
-from braille_dotmatrix_engine import build_embosser_profile
-from braille_dotmatrix_engine.brf import validate_brf_text
+from braille_dotmatrix_engine.brf_batch import resolve_brf_input_paths, validate_brf_files
 
-profile = build_embosser_profile("a4-40x25")
-text = Path("examples/brf/valid_six_dot.txt").read_text(encoding="utf-8")
-print(validate_brf_text(text, profile)["summary"])
+paths = resolve_brf_input_paths(Path("examples/brf"), "*.txt")
+report = validate_brf_files(paths)
+print(report["aggregate"])
 ```
 
 ## Unicode Braille mapping
@@ -103,15 +99,6 @@ The engine uses the official physical 8-dot Braille layout:
 2 5
 3 6
 7 8
-```
-
-Mapped to Unicode bit positions:
-
-```text
-bit0 bit3
-bit1 bit4
-bit2 bit5
-bit6 bit7
 ```
 
 ## Outputs
@@ -128,21 +115,7 @@ bit6 bit7
 
 ## Version and schema policy
 
-Package version, render schema version, and benchmark schema version are intentionally independent. `v1.21.0` keeps render schema at `1.11`.
-
-## Design direction
-
-```text
-V1 Braille + ASCII Multi-Symbol Renderer
-↓
-V2 Semantic Braille Engine
-↓
-V3 Tactile Graphics Quality Engine
-↓
-V4 Visual Semantic Encoding Layer
-```
-
-See [`ROADMAP.md`](ROADMAP.md), [`docs/ROADMAP_V2.md`](docs/ROADMAP_V2.md), [`docs/PROJECT_DESIGN.md`](docs/PROJECT_DESIGN.md), [`docs/RESEARCH_NOTES.md`](docs/RESEARCH_NOTES.md), and [`docs/VERSION_PLAN.md`](docs/VERSION_PLAN.md).
+Package version, render schema version, and benchmark schema version are intentionally independent. `v1.22.0` keeps render schema at `1.11`.
 
 ## Tests
 
