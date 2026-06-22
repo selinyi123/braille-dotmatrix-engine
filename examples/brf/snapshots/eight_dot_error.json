@@ -1,0 +1,32 @@
+{
+  "summary": "BRF issues; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=0; errors=1; reasons=dots_7_or_8_not_supported:1",
+  "ok": false,
+  "validate_only": true,
+  "unsupported_count": 1,
+  "warning_count": 0,
+  "error_count": 1,
+  "diagnostics": {
+    "total": 1,
+    "warning_count": 0,
+    "error_count": 1,
+    "by_reason": {
+      "dots_7_or_8_not_supported": 1
+    },
+    "by_severity": {
+      "warning": 0,
+      "error": 1
+    },
+    "has_errors": true,
+    "has_warnings": false
+  },
+  "unsupported": [
+    {
+      "line": 1,
+      "column": 1,
+      "char": "⡁",
+      "codepoint": "U+2841",
+      "reason": "dots_7_or_8_not_supported",
+      "severity": "error"
+    }
+  ]
+}
