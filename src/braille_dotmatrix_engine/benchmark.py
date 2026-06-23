@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import math
 import time
 from pathlib import Path
@@ -16,6 +15,7 @@ import cv2
 import numpy as np
 
 from .config import BrailleArtConfig
+from .json_utils import dumps_json, write_json
 from .pipeline import process_image
 from .schema import BENCHMARK_SCHEMA_VERSION, RENDER_SCHEMA_VERSION
 
@@ -210,8 +210,6 @@ def write_benchmark_csv(rows: list[dict], path="benchmark.csv") -> str:
 
 
 def write_benchmark_summary(rows: list[dict], path="benchmark_summary.json", *, issues: list[str] | None = None) -> str:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark_schema_version": BENCHMARK_SCHEMA_VERSION,
         "render_schema_version": RENDER_SCHEMA_VERSION,
@@ -225,7 +223,7 @@ def write_benchmark_summary(rows: list[dict], path="benchmark_summary.json", *, 
         "issues": issues or [],
         "ok": not issues,
     }
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_json(payload, path)
     return str(path)
 
 
@@ -244,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     issues = validate_benchmark_rows(rows, max_runtime_sec=args.max_runtime_sec, max_rss_peak_mb=args.max_rss_mb)
     csv_path = write_benchmark_csv(rows, args.csv)
     summary_path = write_benchmark_summary(rows, args.summary, issues=issues)
-    print(json.dumps({"csv": csv_path, "summary": summary_path, "issues": issues}, indent=2, ensure_ascii=False))
+    print(dumps_json({"csv": csv_path, "summary": summary_path, "issues": issues}))
     return 1 if issues else 0
 
 
