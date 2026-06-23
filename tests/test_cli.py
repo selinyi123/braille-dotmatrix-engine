@@ -56,6 +56,13 @@ def test_cli_rejects_brf_export_for_ascii_mode(tmp_path: Path, monkeypatch):
     assert not (tmp_path / 'ascii.brf').exists()
 
 
+def test_cli_rejects_mutually_exclusive_task_modes(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        main(['--benchmark', '--brf-preflight', 'input.txt'])
+    assert exc.value.code == 2
+
+
 def test_cli_writes_brf_for_braille_backed_mode(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     code = main([
