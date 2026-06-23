@@ -65,6 +65,17 @@ def test_non_braille_characters_are_reported_as_warnings():
     assert result.report['error_count'] == 0
 
 
+def test_brf_diagnostics_limit_caps_details_not_counts():
+    result = unicode_braille_to_brf_text('ABC', GenericEmbosserProfile(max_cols=10, max_rows=10), diagnostics_limit=1)
+    assert result.text == '???'
+    assert result.report['unsupported_count'] == 3
+    assert result.report['unsupported_sample_count'] == 1
+    assert len(result.report['unsupported']) == 1
+    assert result.report['diagnostics']['total'] == 3
+    assert result.report['diagnostics']['truncated'] is True
+    assert result.report['diagnostics']['limit'] == 1
+
+
 def test_strict_brf_raises_on_any_diagnostic():
     with pytest.raises(BrfExportError) as exc:
         unicode_braille_to_brf_text('A', GenericEmbosserProfile(max_cols=10, max_rows=10), strict=True)
