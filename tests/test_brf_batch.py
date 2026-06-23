@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from braille_dotmatrix_engine.brf_batch import resolve_brf_input_paths, validate_brf_files
 from braille_dotmatrix_engine.cli import main
 
@@ -11,6 +13,11 @@ def test_resolve_brf_input_paths_for_directory():
     paths = resolve_brf_input_paths(EXAMPLES, '*.txt')
     names = [path.name for path in paths]
     assert names == ['eight_dot_error.txt', 'non_braille_warning.txt', 'valid_six_dot.txt']
+
+
+def test_resolve_brf_input_paths_rejects_too_many_files():
+    with pytest.raises(ValueError, match='too many BRF input files'):
+        resolve_brf_input_paths(EXAMPLES, '*.txt', max_files=2)
 
 
 def test_validate_brf_files_aggregate_examples():
@@ -24,8 +31,28 @@ def test_validate_brf_files_aggregate_examples():
     assert aggregate['issue_files'] == 2
     assert aggregate['warning_count'] == 1
     assert aggregate['error_count'] == 1
+    assert aggregate['truncated_files'] == 0
+    assert aggregate['total_bytes'] > 0
     assert aggregate['by_reason']['non_braille_character'] == 1
     assert aggregate['by_reason']['dots_7_or_8_not_supported'] == 1
+
+
+def test_validate_brf_files_rejects_oversized_file(tmp_path):
+    source = tmp_path / 'large.txt'
+    source.write_text('A' * 20, encoding='utf-8')
+    with pytest.raises(ValueError, match='too large'):
+        validate_brf_files([source], max_file_bytes=10)
+
+
+def test_validate_brf_files_caps_diagnostics(tmp_path):
+    source = tmp_path / 'warnings.txt'
+    source.write_text('ABC', encoding='utf-8')
+    report = validate_brf_files([source], diagnostics_limit=1)
+    file_report = report['files'][0]
+    assert file_report['diagnostics_truncated'] is True
+    assert file_report['brf_export']['unsupported_count'] == 3
+    assert len(file_report['brf_export']['unsupported']) == 1
+    assert report['aggregate']['truncated_files'] == 1
 
 
 def test_cli_brf_preflight_batch_report(tmp_path):
