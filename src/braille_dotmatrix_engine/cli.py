@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from .benchmark import run_benchmark_suite, validate_benchmark_rows, write_benchmark_csv, write_benchmark_summary
@@ -9,6 +10,7 @@ from .brf_batch import DEFAULT_BRF_DIAGNOSTICS_LIMIT, DEFAULT_MAX_BRF_BATCH_FILE
 from .embosser import build_embosser_profile, embosser_profile_names
 from .engine import BrailleArtConfig, create_demo_image, process_image
 from .json_utils import dumps_json, write_json
+from .report_diff import diff_reports
 from .runtime_validation import require_positive, require_unit_interval
 from .schema import BRF_SCHEMA_VERSION, PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 
@@ -45,6 +47,10 @@ def _write_report_json(report: dict, report_json: str) -> None:
 
 def _print_json(payload: dict) -> None:
     print(dumps_json(payload))
+
+
+def _read_json(path: str | Path) -> dict:
+    return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
 def _validate_brf_mode(parser: argparse.ArgumentParser, mode: str, output_brf: str | None, validate_only: bool) -> None:
@@ -87,6 +93,15 @@ def _run_benchmark(args) -> int:
     summary_path = write_benchmark_summary(rows, summary_path, issues=issues)
     _print_json({'benchmark_csv': csv_path, 'benchmark_summary': summary_path, 'issues': issues, 'rows': rows})
     return 1 if issues else 0
+
+
+def _run_report_diff(args) -> int:
+    diff = diff_reports(_read_json(args.report_diff_old), _read_json(args.report_diff_new))
+    _write_report_json(diff, args.report_json)
+    _print_json(diff)
+    if args.report_diff_print_summary:
+        print(diff['summary'])
+    return 1 if diff['counts']['total'] > 0 else 0
 
 
 def _run_brf_preflight(args) -> int:
@@ -139,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--brf-max-file-bytes", type=_positive_int, default=DEFAULT_MAX_BRF_FILE_BYTES, help="maximum bytes accepted for each BRF preflight input file")
     p.add_argument("--brf-diagnostics-limit", type=_positive_int, default=DEFAULT_BRF_DIAGNOSTICS_LIMIT, help="maximum detailed diagnostics retained per BRF report")
     p.add_argument("--brf-print-summary", action="store_true", help="print a compact BRF summary line after JSON output")
+    p.add_argument("--report-diff-old", default=None, help="old JSON report path for structured report diff")
+    p.add_argument("--report-diff-new", default=None, help="new JSON report path for structured report diff")
+    p.add_argument("--report-diff-print-summary", action="store_true", help="print compact report diff summary")
     mode_group = p.add_mutually_exclusive_group()
     mode_group.add_argument("--benchmark", action="store_true", help="run the benchmark suite instead of rendering one image")
     mode_group.add_argument("--brf-preflight", default=None, help="validate an existing Unicode Braille text file without rendering an image")
@@ -159,6 +177,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ascii-html", action="store_true")
     p.add_argument("--braille-target-density", type=_unit_float, default=None)
     a = p.parse_args(argv)
+    if (a.report_diff_old is None) ^ (a.report_diff_new is None):
+        p.error('--report-diff-old and --report-diff-new must be used together')
+    if a.report_diff_old is not None and a.report_diff_new is not None:
+        return _run_report_diff(a)
     if a.benchmark:
         return _run_benchmark(a)
     if a.brf_preflight is not None:
