@@ -62,6 +62,19 @@ jobs:
             --brf-batch-pattern "*.txt" \
             --brf-print-summary \
             --report-json artifacts/brf/brf_batch_report.json
+      - name: Normalize BRF batch contract
+        run: |
+          python -m braille_dotmatrix_engine.brf_contract \
+            artifacts/brf/brf_batch_report.json \
+            --output artifacts/brf/brf_batch_contract.json
+      - name: Generate BRF contract drift report
+        continue-on-error: true
+        run: |
+          braille-dotmatrix \
+            --report-diff-old examples/brf/snapshots/batch_examples.json \
+            --report-diff-new artifacts/brf/brf_batch_contract.json \
+            --report-json artifacts/brf/report_diff.json \
+            --report-diff-print-summary
       - name: Generate BRF artifact provenance manifest
         run: |
           python -m braille_dotmatrix_engine.artifact_provenance \
@@ -83,11 +96,18 @@ jobs:
           assert aggregate['error_count'] == 1
           assert aggregate['issue_files'] == 2
 
+          contract = json.loads(Path('artifacts/brf/brf_batch_contract.json').read_text(encoding='utf-8'))
+          diff = json.loads(Path('artifacts/brf/report_diff.json').read_text(encoding='utf-8'))
+          assert 'aggregate' in contract
+          assert 'files' in contract
+          assert 'counts' in diff
+          assert 'summary' in diff
+
           provenance = json.loads(Path('artifacts/brf/provenance_manifest.json').read_text(encoding='utf-8'))
           assert provenance['label'] == 'brf-batch-report'
           assert provenance['algorithm'] == 'sha256'
-          assert provenance['file_count'] == 1
-          assert provenance['files'][0]['path'] == 'brf_batch_report.json'
+          assert provenance['file_count'] == 3
+          assert {item['path'] for item in provenance['files']} == {'brf_batch_report.json', 'brf_batch_contract.json', 'report_diff.json'}
           PY
       - uses: actions/upload-artifact@v4
         if: always()
@@ -95,6 +115,8 @@ jobs:
           name: brf-batch-report
           path: |
             artifacts/brf/brf_batch_report.json
+            artifacts/brf/brf_batch_contract.json
+            artifacts/brf/report_diff.json
             artifacts/brf/provenance_manifest.json
           if-no-files-found: error
           retention-days: 7
