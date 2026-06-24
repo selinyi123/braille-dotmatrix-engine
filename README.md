@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.25.0`
+`v1.26.0`
 
 ## Status
 
@@ -27,7 +27,8 @@ This repository is currently in the **V1 engineering prototype** stage:
 - checked-in BRF example fixtures for valid, warning, and error cases
 - JSON contract fixtures for BRF report regression tests
 - structured JSON report diff helper for contract drift review
-- BRF batch CI report artifact upload
+- SHA-256 artifact provenance manifest generation
+- BRF batch CI report artifact upload with provenance manifest
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - centralized render, BRF, and benchmark schema constants
@@ -38,12 +39,13 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.25.0 report diff notes
+### v1.26.0 artifact provenance notes
 
-- Added `braille_dotmatrix_engine.report_diff.diff_reports()`.
-- Added CLI flags `--report-diff-old` and `--report-diff-new`.
-- Diff output includes `added`, `removed`, `changed`, `counts`, and `summary`.
-- Report diff mode returns `0` when reports match and `1` when differences exist.
+- Added `braille_dotmatrix_engine.artifact_provenance`.
+- Added `sha256_file()`, `build_artifact_provenance_manifest()`, and `write_artifact_provenance_manifest()`.
+- Added `python -m braille_dotmatrix_engine.artifact_provenance` CLI entry point.
+- CI now uploads `brf_batch_report.json` together with `provenance_manifest.json`.
+- This is a low-permission provenance layer; GitHub Artifact Attestations remain a future release-hardening step.
 
 ## Install
 
@@ -65,6 +67,12 @@ Validate a directory of Unicode Braille text files. Directory scanning is non-re
 braille-dotmatrix --brf-preflight-batch examples/brf --brf-batch-pattern "*.txt" --brf-print-summary --report-json artifacts/brf_batch_report.json
 ```
 
+Generate a SHA-256 artifact provenance manifest:
+
+```bash
+python -m braille_dotmatrix_engine.artifact_provenance artifacts/brf --output artifacts/brf/provenance_manifest.json --label brf-batch-report
+```
+
 Compare two JSON reports:
 
 ```bash
@@ -81,12 +89,10 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv --benchmar
 
 ```python
 from pathlib import Path
-import json
-from braille_dotmatrix_engine.report_diff import diff_reports
+from braille_dotmatrix_engine.artifact_provenance import write_artifact_provenance_manifest
 
-old = json.loads(Path("examples/brf/snapshots/batch_examples.json").read_text(encoding="utf-8"))
-new = json.loads(Path("artifacts/brf/brf_batch_report.json").read_text(encoding="utf-8"))
-print(diff_reports(old, new)["summary"])
+manifest = write_artifact_provenance_manifest(Path("artifacts/brf"), Path("artifacts/brf/provenance_manifest.json"), label="brf-batch-report")
+print(manifest["files"])
 ```
 
 ## JSON contracts
@@ -121,7 +127,7 @@ Package version, render schema version, BRF schema version, and benchmark schema
 pytest -q
 ```
 
-CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, BRF batch report artifact generation, and benchmark smoke.
+CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, BRF batch report artifact generation, BRF provenance manifest generation, and benchmark smoke.
 
 ## License
 
