@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.24.1`
+`v1.25.0`
 
 ## Status
 
@@ -26,6 +26,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - optional recursive BRF batch directory scans
 - checked-in BRF example fixtures for valid, warning, and error cases
 - JSON contract fixtures for BRF report regression tests
+- structured JSON report diff helper for contract drift review
 - BRF batch CI report artifact upload
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
@@ -37,18 +38,12 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.24.x schema notes
+### v1.25.0 report diff notes
 
-- Render report schema is `1.12` because input resource limits are included in render config reports.
-- BRF-specific reports use `brf_schema_version`.
-- Benchmark reports use their own benchmark schema version.
-- Package version, render schema, BRF schema, and benchmark schema are intentionally independent.
-
-### v1.24.1 CI artifact notes
-
-- CI now generates `artifacts/brf/brf_batch_report.json` from `examples/brf/`.
-- CI validates the batch aggregate before uploading the report.
-- CI uploads the report as the `brf-batch-report` artifact with `retention-days: 7`.
+- Added `braille_dotmatrix_engine.report_diff.diff_reports()`.
+- Added CLI flags `--report-diff-old` and `--report-diff-new`.
+- Diff output includes `added`, `removed`, `changed`, `counts`, and `summary`.
+- Report diff mode returns `0` when reports match and `1` when differences exist.
 
 ## Install
 
@@ -70,10 +65,10 @@ Validate a directory of Unicode Braille text files. Directory scanning is non-re
 braille-dotmatrix --brf-preflight-batch examples/brf --brf-batch-pattern "*.txt" --brf-print-summary --report-json artifacts/brf_batch_report.json
 ```
 
-Recursively scan a directory:
+Compare two JSON reports:
 
 ```bash
-braille-dotmatrix --brf-preflight-batch examples/brf --brf-batch-recursive --brf-batch-pattern "*.txt" --report-json artifacts/brf_batch_recursive_report.json
+braille-dotmatrix --report-diff-old examples/brf/snapshots/batch_examples.json --report-diff-new artifacts/brf/brf_batch_report.json --report-json artifacts/report_diff.json --report-diff-print-summary
 ```
 
 Run smoke benchmarks with CSV and summary artifacts:
@@ -86,14 +81,12 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv --benchmar
 
 ```python
 from pathlib import Path
-from braille_dotmatrix_engine.brf import validate_brf_text
-from braille_dotmatrix_engine.brf_batch import resolve_brf_input_paths, validate_brf_files
+import json
+from braille_dotmatrix_engine.report_diff import diff_reports
 
-single = validate_brf_text(Path("examples/brf/valid_six_dot.txt").read_text(encoding="utf-8"))
-paths = resolve_brf_input_paths(Path("examples/brf"), "*.txt")
-batch = validate_brf_files(paths)
-print(single["summary"])
-print(batch["aggregate"])
+old = json.loads(Path("examples/brf/snapshots/batch_examples.json").read_text(encoding="utf-8"))
+new = json.loads(Path("artifacts/brf/brf_batch_report.json").read_text(encoding="utf-8"))
+print(diff_reports(old, new)["summary"])
 ```
 
 ## JSON contracts
