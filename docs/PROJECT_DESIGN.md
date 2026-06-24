@@ -4,7 +4,7 @@
 
 `braille-dotmatrix-engine` should be treated as a layered rendering and encoding system, not only as an image-to-character-art converter.
 
-The current V1 layer is a Unicode Braille renderer. The long-term target is a semantic tactile graphics engine.
+The current V1 layer is a Unicode Braille, ASCII, chromatic preview, and BRF boundary engine. The long-term target is a semantic tactile graphics engine.
 
 ## Pipeline
 
@@ -19,7 +19,7 @@ Dither and density correction
 ↓
 Unicode Braille encoding
 ↓
-Tactile/screen/vector exports
+Tactile/screen/chromatic/ASCII/vector/BRF-adjacent exports
 ↓
 Validation report
 ```
@@ -40,16 +40,30 @@ Braille/tactile rendering
 
 | Module | Responsibility |
 |---|---|
-| `config.py` | Configuration dataclasses for geometry, material, printer, and pipeline parameters. |
-| `preprocess.py` | CLAHE preprocessing and float normalization. |
+| `config.py` | Configuration dataclasses for geometry, material, printer, rendering, ASCII, chromatic, and resource-limit parameters. |
+| `validation.py` | Central validation gate for public configuration values. |
+| `preprocess.py` | Image input normalization, grayscale conversion, and CLAHE preprocessing. |
 | `sampling.py` | Dot-grid generation, Gaussian sampling, and tile/overlap sampling. |
 | `dither.py` | Atkinson/Stucki/JJN dithering and local density correction. |
 | `braille_unicode.py` | Unicode Braille scalar and matrix encode/decode logic. |
+| `braille_enhance.py` | Pre-dither Braille value enhancement. |
+| `braille_quality.py` | Density control and seam/density quality analysis. |
+| `ascii_backend.py` | ASCII mono/color text, ANSI, HTML, and PNG preview generation. |
+| `chromatic.py` | Chromatic dot-matrix preview rendering. |
 | `raster.py` | PNG rendering and raster validation. |
 | `vector.py` | SVG tactile export in millimeter coordinates. |
+| `tactile.py` | Physical tactile geometry reports and active-dot validation. |
+| `geometry.py` | Manufacturing-compensated dot radius calculations. |
 | `metrics.py` | MSE, PSNR, edge score, occupancy, and local-density metrics. |
-| `pipeline.py` | End-to-end orchestration and report generation. |
-| `cli.py` | Command-line interface. |
+| `renderers/` | Renderer strategy registry and mode-specific orchestration. |
+| `artifacts.py` | Artifact manifests and output directory preparation. |
+| `reports.py` | Render report base/adaptation layer. |
+| `brf.py` | Six-dot Braille ASCII / BRF-like conversion and diagnostics. |
+| `brf_batch.py` | Batch BRF preflight, aggregation, and resource limits. |
+| `embosser.py` | Generic embosser profile, capacity, and export boundary metadata. |
+| `benchmark.py` | Benchmark profiles, runtime/memory/artifact metrics, and summary artifacts. |
+| `json_utils.py` | Strict JSON serialization for reports and CLI output. |
+| `cli.py` | Command-line interface for rendering, benchmarks, and BRF preflight modes. |
 
 ## Engineering principles
 
@@ -58,6 +72,8 @@ Braille/tactile rendering
 3. Keep Unicode Braille mapping exhaustively tested.
 4. Separate screen aesthetics from tactile manufacturing constraints.
 5. Treat every exported artifact as reproducible from image, config, and seed.
+6. Make all reports strict-JSON safe for dashboards and contract tests.
+7. Guard direct public-ish APIs, not only the end-to-end pipeline.
 
 ## Known limitations
 
@@ -66,6 +82,7 @@ Braille/tactile rendering
 - Dithering uses sequential error diffusion; this is correct for the algorithm but not fully vectorized.
 - Raster drawing still uses PIL drawing loops; acceptable for V1, but a NumPy/OpenCV rasterizer is preferred for V1.5+.
 - SVG output exports circles but does not yet emit embossing-machine-specific formats.
+- Benchmarking records point-in-time smoke metrics, not longitudinal trend baselines.
 
 ## Next architecture target
 

@@ -7,6 +7,7 @@ from braille_dotmatrix_engine import (
     embosser_export_manifest,
     embosser_profile_names,
     get_embosser_profile_preset,
+    validate_embosser_profile,
 )
 
 
@@ -26,6 +27,23 @@ def test_embosser_manifest_for_six_dot_text_export():
     assert manifest['portable_text_export'] is True
 
 
+def test_invalid_embosser_profile_reports_issues_without_capacity():
+    manifest = embosser_export_manifest(GenericEmbosserProfile(name='bad', max_cols=10.5))
+    assert manifest['ok'] is False
+    assert manifest['capacity'] is None
+    assert any('max_cols' in issue for issue in manifest['issues'])
+
+
+def test_invalid_embosser_capacity_raises():
+    with pytest.raises(ValueError, match='max_cols'):
+        embosser_capacity(GenericEmbosserProfile(max_cols=10.5))
+
+
+def test_embosser_profile_rejects_non_finite_dimensions():
+    issues = validate_embosser_profile(GenericEmbosserProfile(page_width_mm=float('inf')))
+    assert any('page_width_mm' in issue for issue in issues)
+
+
 def test_profile_preset_names_are_stable():
     names = embosser_profile_names()
     assert 'a4-40x25' in names
@@ -39,6 +57,11 @@ def test_profile_preset_override_capacity():
     assert profile.name == 'letter-40x25+override'
     assert capacity['cols'] == 32
     assert capacity['rows'] == 12
+
+
+def test_profile_preset_override_rejects_fractional_capacity():
+    with pytest.raises(ValueError, match='max_cols'):
+        build_embosser_profile('letter-40x25', max_cols=32.5)
 
 
 def test_unknown_profile_preset_is_rejected():

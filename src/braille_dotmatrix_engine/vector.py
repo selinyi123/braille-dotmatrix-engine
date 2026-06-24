@@ -2,14 +2,37 @@ from __future__ import annotations
 
 from pathlib import Path
 import html
+import numbers
 import numpy as np
 
 from .geometry import compensated_dot_radius_mm
 from .tactile import geometry_report
 
 
-def export_svg(binary, cfg, path, title='Braille Dot-Matrix Export'):
+def _require_int_positive(name: str, value) -> int:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f'{name} must be an integer')
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f'{name} must be positive')
+    return parsed
+
+
+def _as_binary_matrix(binary, cfg=None) -> np.ndarray:
     b = np.asarray(binary, dtype=bool)
+    if b.ndim != 2:
+        raise ValueError('binary must be a 2D dot matrix')
+    if b.size == 0 or b.shape[0] <= 0 or b.shape[1] <= 0:
+        raise ValueError('binary dot matrix must be non-empty')
+    if cfg is not None:
+        limit = getattr(cfg, 'max_total_dots', None)
+        if limit is not None and b.size > _require_int_positive('max_total_dots', limit):
+            raise ValueError(f'binary dot matrix too large: {b.size} dots exceeds max_total_dots={limit}')
+    return b
+
+
+def export_svg(binary, cfg, path, title='Braille Dot-Matrix Export'):
+    b = _as_binary_matrix(binary, cfg)
     spacing = float(cfg.dot_spacing_mm)
     radius = compensated_dot_radius_mm(cfg)
     width = b.shape[1] * spacing

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
 
@@ -10,6 +9,7 @@ from PIL import Image, ImageDraw
 
 from .artifacts import artifact_manifest, legacy_artifact_paths, prepare_artifact_dirs
 from .config import BrailleArtConfig
+from .json_utils import write_json
 from .renderers import RenderContext, get_renderer
 from .reports import adapt_render_report, base_render_report
 from .validation import validate_config
@@ -46,7 +46,7 @@ def _load_image(image_path):
 
 
 def _write_report_json(report: dict, report_json) -> None:
-    Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+    write_json(report, report_json)
 
 
 def _refresh_artifact_manifest(report: dict, output_png, output_txt, report_json, output_svg=None, output_html=None) -> dict:

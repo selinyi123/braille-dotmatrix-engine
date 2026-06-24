@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numbers
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,17 @@ def _paginate(lines: list[str], rows: int) -> tuple[str, int]:
     return '\f'.join('\n'.join(page) for page in pages), len(pages)
 
 
+def _optional_positive_int(name: str, value) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        raise ValueError(f'{name} must be a positive integer when provided')
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f'{name} must be positive when provided')
+    return parsed
+
+
 def brf_issue_severity(reason: str) -> str:
     if reason in BRF_ERROR_REASONS:
         return 'error'
@@ -73,6 +85,20 @@ def summarize_brf_diagnostics(unsupported: list[dict[str, Any]]) -> dict[str, An
     }
 
 
+def _diagnostics_from_counts(total: int, by_reason: dict[str, int], by_severity: dict[str, int], *, truncated: bool, limit: int | None) -> dict[str, Any]:
+    return {
+        'total': int(total),
+        'warning_count': int(by_severity.get('warning', 0)),
+        'error_count': int(by_severity.get('error', 0)),
+        'by_reason': dict(by_reason),
+        'by_severity': {'warning': int(by_severity.get('warning', 0)), 'error': int(by_severity.get('error', 0))},
+        'has_errors': int(by_severity.get('error', 0)) > 0,
+        'has_warnings': int(by_severity.get('warning', 0)) > 0,
+        'truncated': bool(truncated),
+        'limit': limit,
+    }
+
+
 def brf_report_summary(report: dict[str, Any]) -> str:
     diagnostics = report.get('diagnostics', {})
     reasons = diagnostics.get('by_reason', {}) or {}
@@ -85,12 +111,13 @@ def brf_report_summary(report: dict[str, Any]) -> str:
     )
 
 
-def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> BrfExportResult:
+def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False, diagnostics_limit: int | None = None) -> BrfExportResult:
     profile = profile or GenericEmbosserProfile()
     assert_embosser_profile(profile)
     if profile.cell_mode != 'SIX_DOT':
         raise ValueError('BRF text export requires a SIX_DOT profile')
 
+    diagnostics_limit = _optional_positive_int('diagnostics_limit', diagnostics_limit)
     capacity = embosser_capacity(profile)
     cols = int(capacity['cols'])
     rows = int(capacity['rows'])
@@ -99,6 +126,10 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
 
     converted_lines: list[str] = []
     unsupported: list[dict[str, Any]] = []
+    unsupported_total = 0
+    by_reason: dict[str, int] = {}
+    by_severity: dict[str, int] = {'warning': 0, 'error': 0}
+    diagnostics_truncated = False
     source_lines = text.splitlines()
     if text.endswith('\n'):
         source_lines.append('')
@@ -119,12 +150,18 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
             else:
                 reason = 'non_braille_character'
             severity = brf_issue_severity(reason)
-            unsupported.append({'line': row_idx + 1, 'column': col_idx + 1, 'char': ch, 'codepoint': f'U+{code:04X}', 'reason': reason, 'severity': severity})
+            unsupported_total += 1
+            by_reason[reason] = by_reason.get(reason, 0) + 1
+            by_severity[severity] = by_severity.get(severity, 0) + 1
+            if diagnostics_limit is None or len(unsupported) < diagnostics_limit:
+                unsupported.append({'line': row_idx + 1, 'column': col_idx + 1, 'char': ch, 'codepoint': f'U+{code:04X}', 'reason': reason, 'severity': severity})
+            else:
+                diagnostics_truncated = True
             out_chars.append('?')
         converted_lines.extend(_line_chunks(''.join(out_chars), cols))
 
     brf_text, pages = _paginate(converted_lines, rows)
-    diagnostics = summarize_brf_diagnostics(unsupported)
+    diagnostics = _diagnostics_from_counts(unsupported_total, by_reason, by_severity, truncated=diagnostics_truncated, limit=diagnostics_limit)
     report = {
         'exporter': 'brf_text_export',
         'profile': profile.name,
@@ -137,7 +174,8 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
         'pages': pages,
         'strict': strict,
         'validate_only': False,
-        'unsupported_count': len(unsupported),
+        'unsupported_count': unsupported_total,
+        'unsupported_sample_count': len(unsupported),
         'warning_count': diagnostics['warning_count'],
         'error_count': diagnostics['error_count'],
         'diagnostics': diagnostics,
@@ -150,9 +188,9 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
     return BrfExportResult(text=brf_text, report=report)
 
 
-def validate_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> dict[str, Any]:
+def validate_brf_text(text: str, profile: GenericEmbosserProfile | None = None, *, strict: bool = False, diagnostics_limit: int | None = None) -> dict[str, Any]:
     try:
-        result = unicode_braille_to_brf_text(text, profile, strict=strict)
+        result = unicode_braille_to_brf_text(text, profile, strict=strict, diagnostics_limit=diagnostics_limit)
         report = dict(result.report)
     except BrfExportError as exc:
         report = dict(exc.report)
@@ -163,8 +201,8 @@ def validate_brf_text(text: str, profile: GenericEmbosserProfile | None = None, 
     return report
 
 
-def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile | None = None, *, strict: bool = False) -> dict[str, Any]:
-    result = unicode_braille_to_brf_text(text, profile, strict=strict)
+def write_brf_text(text: str, path: str | Path, profile: GenericEmbosserProfile | None = None, *, strict: bool = False, diagnostics_limit: int | None = None) -> dict[str, Any]:
+    result = unicode_braille_to_brf_text(text, profile, strict=strict, diagnostics_limit=diagnostics_limit)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(result.text, encoding='ascii', newline='\n')

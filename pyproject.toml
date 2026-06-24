@@ -13,7 +13,12 @@ authors = [{ name = "selinyi123" }]
 dependencies = ["numpy>=1.24", "opencv-python>=4.8", "Pillow>=10.0", "scipy>=1.10"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+  "build>=1.2",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.5",
+]
 
 [project.scripts]
 braille-dotmatrix = "braille_dotmatrix_engine.cli:main"
@@ -24,3 +29,10 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["F"]

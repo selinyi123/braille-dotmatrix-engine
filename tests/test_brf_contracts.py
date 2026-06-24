@@ -12,6 +12,18 @@ def _load_contract(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
 
 
+def _diagnostics_contract(diagnostics: dict) -> dict:
+    return {
+        'total': diagnostics['total'],
+        'warning_count': diagnostics['warning_count'],
+        'error_count': diagnostics['error_count'],
+        'by_reason': diagnostics['by_reason'],
+        'by_severity': diagnostics['by_severity'],
+        'has_errors': diagnostics['has_errors'],
+        'has_warnings': diagnostics['has_warnings'],
+    }
+
+
 def _single_contract(report: dict) -> dict:
     return {
         'summary': report['summary'],
@@ -20,14 +32,27 @@ def _single_contract(report: dict) -> dict:
         'unsupported_count': report['unsupported_count'],
         'warning_count': report['warning_count'],
         'error_count': report['error_count'],
-        'diagnostics': report['diagnostics'],
+        'diagnostics': _diagnostics_contract(report['diagnostics']),
         'unsupported': report['unsupported'],
+    }
+
+
+def _aggregate_contract(aggregate: dict) -> dict:
+    return {
+        'total_files': aggregate['total_files'],
+        'ok_files': aggregate['ok_files'],
+        'warning_files': aggregate['warning_files'],
+        'error_files': aggregate['error_files'],
+        'issue_files': aggregate['issue_files'],
+        'warning_count': aggregate['warning_count'],
+        'error_count': aggregate['error_count'],
+        'by_reason': aggregate['by_reason'],
     }
 
 
 def _batch_contract(report: dict) -> dict:
     return {
-        'aggregate': report['aggregate'],
+        'aggregate': _aggregate_contract(report['aggregate']),
         'files': [
             {
                 'name': Path(item['path']).name,

@@ -1,11 +1,14 @@
 from __future__ import annotations
-import argparse, json
+
+import argparse
 from pathlib import Path
-from .engine import BrailleArtConfig, create_demo_image, process_image
+
 from .benchmark import run_benchmark_suite, write_benchmark_csv
 from .brf import BrfExportError, attach_brf_artifact_to_report, validate_brf_text, write_brf_text
-from .brf_batch import resolve_brf_input_paths, validate_brf_files
+from .brf_batch import DEFAULT_BRF_DIAGNOSTICS_LIMIT, DEFAULT_MAX_BRF_BATCH_FILES, DEFAULT_MAX_BRF_FILE_BYTES, resolve_brf_input_paths, validate_brf_files
 from .embosser import build_embosser_profile, embosser_profile_names
+from .engine import BrailleArtConfig, create_demo_image, process_image
+from .json_utils import dumps_json, write_json
 from .schema import PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 
 BRF_COMPATIBLE_MODES = {"TACTILE", "SCREEN", "CHROMATIC"}
@@ -26,8 +29,11 @@ def _unit_float(value: str) -> float:
 
 
 def _write_report_json(report: dict, report_json: str) -> None:
-    Path(report_json).parent.mkdir(parents=True, exist_ok=True)
-    Path(report_json).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+    write_json(report, report_json)
+
+
+def _print_json(payload: dict) -> None:
+    print(dumps_json(payload))
 
 
 def _validate_brf_mode(parser: argparse.ArgumentParser, mode: str, output_brf: str | None, validate_only: bool) -> None:
@@ -46,14 +52,22 @@ def _base_preflight_report(mode: str, strategy: str, reason: str) -> dict:
     }
 
 
+def _read_limited_text(path: Path, max_file_bytes: int) -> str:
+    size = path.stat().st_size
+    if size > max_file_bytes:
+        raise ValueError(f'BRF input file too large: {path} is {size} bytes, max_file_bytes={max_file_bytes}')
+    return path.read_text(encoding='utf-8')
+
+
 def _run_brf_preflight(args) -> int:
     source_path = Path(args.brf_preflight)
     profile = build_embosser_profile(args.brf_profile, max_cols=args.brf_cols, max_rows=args.brf_rows)
-    brf_report = validate_brf_text(source_path.read_text(encoding='utf-8'), profile, strict=bool(args.strict_brf))
+    source_text = _read_limited_text(source_path, args.brf_max_file_bytes)
+    brf_report = validate_brf_text(source_text, profile, strict=bool(args.strict_brf), diagnostics_limit=args.brf_diagnostics_limit)
     report = _base_preflight_report('BRF_PREFLIGHT', 'BrfPreflight', 'text-only BRF preflight')
     report = attach_brf_artifact_to_report(report, output_brf=None, output_png=None, output_txt=source_path, report_json=args.report_json, output_svg=None, output_html=None, brf_report=brf_report)
     _write_report_json(report, args.report_json)
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    _print_json(report)
     if args.brf_print_summary:
         print(brf_report['summary'])
     return 2 if args.strict_brf and brf_report['diagnostics']['total'] > 0 else 0
@@ -61,12 +75,12 @@ def _run_brf_preflight(args) -> int:
 
 def _run_brf_preflight_batch(args) -> int:
     profile = build_embosser_profile(args.brf_profile, max_cols=args.brf_cols, max_rows=args.brf_rows)
-    paths = resolve_brf_input_paths(args.brf_preflight_batch, args.brf_batch_pattern)
-    batch = validate_brf_files(paths, profile, strict=bool(args.strict_brf))
+    paths = resolve_brf_input_paths(args.brf_preflight_batch, args.brf_batch_pattern, max_files=args.brf_batch_max_files)
+    batch = validate_brf_files(paths, profile, strict=bool(args.strict_brf), max_file_bytes=args.brf_max_file_bytes, diagnostics_limit=args.brf_diagnostics_limit)
     report = _base_preflight_report('BRF_PREFLIGHT_BATCH', 'BrfPreflightBatch', 'batch text-only BRF preflight')
     report['batch'] = {'root': str(args.brf_preflight_batch), 'pattern': args.brf_batch_pattern, **batch}
     _write_report_json(report, args.report_json)
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    _print_json(report)
     if args.brf_print_summary:
         agg = report['batch']['aggregate']
         print(f"BRF batch; files={agg['total_files']}; ok={agg['ok_files']}; warnings={agg['warning_count']}; errors={agg['error_count']}; issue_files={agg['issue_files']}")
@@ -89,10 +103,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
     p.add_argument("--strict-brf", action="store_true", help="validate BRF diagnostics")
     p.add_argument("--brf-validate-only", action="store_true", help="add BRF diagnostics to the report without writing a BRF file")
-    p.add_argument("--brf-preflight", default=None, help="validate an existing Unicode Braille text file without rendering an image")
-    p.add_argument("--brf-preflight-batch", default=None, help="validate a file or directory of Unicode Braille text files")
     p.add_argument("--brf-batch-pattern", default="*.txt", help="glob pattern for directory batch preflight")
+    p.add_argument("--brf-batch-max-files", type=_positive_int, default=DEFAULT_MAX_BRF_BATCH_FILES, help="maximum files accepted by BRF batch preflight")
+    p.add_argument("--brf-max-file-bytes", type=_positive_int, default=DEFAULT_MAX_BRF_FILE_BYTES, help="maximum bytes accepted for each BRF preflight input file")
+    p.add_argument("--brf-diagnostics-limit", type=_positive_int, default=DEFAULT_BRF_DIAGNOSTICS_LIMIT, help="maximum detailed diagnostics retained per BRF report")
     p.add_argument("--brf-print-summary", action="store_true", help="print a compact BRF summary line after JSON output")
+    mode_group = p.add_mutually_exclusive_group()
+    mode_group.add_argument("--benchmark", action="store_true", help="run the benchmark suite instead of rendering one image")
+    mode_group.add_argument("--brf-preflight", default=None, help="validate an existing Unicode Braille text file without rendering an image")
+    mode_group.add_argument("--brf-preflight-batch", default=None, help="validate a file or directory of Unicode Braille text files")
+    p.add_argument("--benchmark-csv", default="benchmark.csv")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-invert", action="store_true")
     p.add_argument("--strict-tactile", action="store_true", help="fail tactile-mode export when tactile validation reports errors")
@@ -102,13 +122,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ascii-edge-weight", type=float, default=None)
     p.add_argument("--ascii-html", action="store_true")
     p.add_argument("--braille-target-density", type=_unit_float, default=None)
-    p.add_argument("--benchmark", action="store_true", help="run the benchmark suite instead of rendering one image")
-    p.add_argument("--benchmark-csv", default="benchmark.csv")
     a = p.parse_args(argv)
     if a.benchmark:
         rows = run_benchmark_suite(output_dir=Path(a.benchmark_csv).parent or Path('.'))
         write_benchmark_csv(rows, a.benchmark_csv)
-        print(json.dumps({'benchmark_csv': a.benchmark_csv, 'rows': rows}, indent=2, ensure_ascii=False))
+        _print_json({'benchmark_csv': a.benchmark_csv, 'rows': rows})
         return 0
     if a.brf_preflight is not None:
         return _run_brf_preflight(a)
@@ -139,12 +157,12 @@ def main(argv: list[str] | None = None) -> int:
         source_text = Path(a.output_txt).read_text(encoding='utf-8')
         exit_code = 0
         if a.brf_validate_only:
-            brf_report = validate_brf_text(source_text, profile, strict=bool(a.strict_brf))
+            brf_report = validate_brf_text(source_text, profile, strict=bool(a.strict_brf), diagnostics_limit=a.brf_diagnostics_limit)
             if a.strict_brf and brf_report['diagnostics']['total'] > 0:
                 exit_code = 2
         else:
             try:
-                brf_report = write_brf_text(source_text, a.output_brf, profile, strict=bool(a.strict_brf))
+                brf_report = write_brf_text(source_text, a.output_brf, profile, strict=bool(a.strict_brf), diagnostics_limit=a.brf_diagnostics_limit)
             except BrfExportError as exc:
                 brf_report = dict(exc.report)
                 brf_report['path'] = str(a.output_brf)
@@ -153,11 +171,11 @@ def main(argv: list[str] | None = None) -> int:
                 exit_code = 2
         report = attach_brf_artifact_to_report(report, output_brf=None if a.brf_validate_only else a.output_brf, output_png=a.output_png, output_txt=a.output_txt, report_json=a.report_json, output_svg=a.output_svg, output_html=a.output_html, brf_report=brf_report)
         _write_report_json(report, a.report_json)
-        print(json.dumps(report, indent=2, ensure_ascii=False))
+        _print_json(report)
         if a.brf_print_summary:
             print(brf_report['summary'])
         return exit_code
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    _print_json(report)
     return 0
 
 

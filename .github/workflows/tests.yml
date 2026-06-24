@@ -5,6 +5,26 @@ on:
   pull_request:
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -U pip
+      - run: pip install -e ".[dev]"
+      - name: Ruff lint
+        run: ruff check .
+      - name: Build wheel and sdist
+        run: python -m build
+      - name: Install built wheel smoke
+        run: |
+          python -m venv /tmp/braille-wheel-smoke
+          /tmp/braille-wheel-smoke/bin/python -m pip install -U pip
+          /tmp/braille-wheel-smoke/bin/pip install dist/*.whl
+          /tmp/braille-wheel-smoke/bin/braille-dotmatrix --help
+
   pytest:
     runs-on: ubuntu-latest
     strategy:
@@ -18,7 +38,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -U pip
       - run: pip install -e ".[dev]"
-      - run: pytest -q --junitxml=pytest-${{ matrix.python-version }}.xml
+      - run: pytest -q --cov=braille_dotmatrix_engine --cov-report=term-missing --junitxml=pytest-${{ matrix.python-version }}.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

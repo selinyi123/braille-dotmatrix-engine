@@ -15,6 +15,14 @@ def _require_int_positive(name: str, value) -> int:
     return parsed
 
 
+def _validate_image_shape(shape) -> tuple[int, int]:
+    if len(shape) < 2:
+        raise ValueError('shape must contain height and width')
+    h = _require_int_positive('image height', int(shape[0]))
+    w = _require_int_positive('image width', int(shape[1]))
+    return h, w
+
+
 def _enforce_dot_grid_limit(cfg, dx: int, dy: int) -> None:
     max_total_dots = _require_int_positive('max_total_dots', getattr(cfg, 'max_total_dots', 2_000_000))
     total = int(dx) * int(dy)
@@ -23,7 +31,7 @@ def _enforce_dot_grid_limit(cfg, dx: int, dy: int) -> None:
 
 
 def build_dot_grid(cfg, shape):
-    h, w = shape[:2]
+    h, w = _validate_image_shape(shape)
     output_width_cells = _require_int_positive('output_width_cells', cfg.output_width_cells)
     dx = max(2, 2 * output_width_cells)
     dy = max(4, int(round((h / max(w, 1)) * dx / 4)) * 4)
