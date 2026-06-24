@@ -95,10 +95,21 @@ def test_cli_benchmark_ignores_render_only_brf_options(tmp_path: Path, monkeypat
     code = main(['--benchmark', '--mode', 'ASCII_MONO', '--output-brf', 'ignored.brf', '--benchmark-csv', 'bench.csv'])
     assert code == 0
     assert (tmp_path / 'bench.csv').exists()
+    assert (tmp_path / 'bench_summary.json').exists()
     assert not (tmp_path / 'ignored.brf').exists()
 
 
-def test_cli_benchmark_generates_csv(tmp_path: Path, monkeypatch):
+def test_cli_benchmark_generates_csv_and_summary(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert main(['--benchmark', '--benchmark-csv', 'bench.csv']) == 0
+    assert main(['--benchmark', '--benchmark-csv', 'bench.csv', '--benchmark-summary', 'summary.json', '--benchmark-no-ascii']) == 0
     assert (tmp_path / 'bench.csv').exists()
+    summary = json.loads((tmp_path / 'summary.json').read_text(encoding='utf-8'))
+    assert summary['ok'] is True
+    assert summary['row_count'] == 4
+
+
+def test_cli_benchmark_rejects_non_finite_thresholds(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        main(['--benchmark', '--benchmark-max-runtime-sec', 'nan'])
+    assert exc.value.code == 2
