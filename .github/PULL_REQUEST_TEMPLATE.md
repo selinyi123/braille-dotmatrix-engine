@@ -18,6 +18,16 @@
 - [ ] Performance Agent: resource limits and benchmark impact are considered.
 - [ ] Release Gate Agent: CI, package build, and wheel smoke are expected to pass.
 
+## Contract migration checklist
+
+Complete this section when checked-in JSON contracts or snapshots change.
+
+- [ ] The generated contract was produced from the documented CLI/API path.
+- [ ] `report_diff.json` or equivalent diff was reviewed.
+- [ ] A contract migration reason is recorded.
+- [ ] Tests and snapshots were updated in the same PR.
+- [ ] The change is not hiding an unintended renderer, embosser profile, or schema default change.
+
 ## Validation
 
 - [ ] `ruff check .`
@@ -26,4 +36,3 @@
 - [ ] GitHub Actions benchmark smoke
 
 ## Notes
-
