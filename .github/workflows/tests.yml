@@ -62,6 +62,12 @@ jobs:
             --brf-batch-pattern "*.txt" \
             --brf-print-summary \
             --report-json artifacts/brf/brf_batch_report.json
+      - name: Generate BRF artifact provenance manifest
+        run: |
+          python -m braille_dotmatrix_engine.artifact_provenance \
+            artifacts/brf \
+            --output artifacts/brf/provenance_manifest.json \
+            --label brf-batch-report
       - name: Validate BRF batch report aggregate
         run: |
           python - <<'PY'
@@ -76,12 +82,20 @@ jobs:
           assert aggregate['warning_count'] == 1
           assert aggregate['error_count'] == 1
           assert aggregate['issue_files'] == 2
+
+          provenance = json.loads(Path('artifacts/brf/provenance_manifest.json').read_text(encoding='utf-8'))
+          assert provenance['label'] == 'brf-batch-report'
+          assert provenance['algorithm'] == 'sha256'
+          assert provenance['file_count'] == 1
+          assert provenance['files'][0]['path'] == 'brf_batch_report.json'
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: brf-batch-report
-          path: artifacts/brf/brf_batch_report.json
+          path: |
+            artifacts/brf/brf_batch_report.json
+            artifacts/brf/provenance_manifest.json
           if-no-files-found: error
           retention-days: 7
 
