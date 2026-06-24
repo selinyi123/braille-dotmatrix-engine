@@ -8,11 +8,18 @@ from typing import Any
 from .artifacts import artifact_manifest, legacy_artifact_paths
 from .braille_unicode import BRAILLE_BASE, decode_braille_cell
 from .embosser import GenericEmbosserProfile, assert_embosser_profile, embosser_capacity
+from .schema import BRF_SCHEMA_VERSION
 
 # Braille ASCII glyphs indexed by the Unicode Braille mask U+2800..U+283F.
 # This is intentionally limited to six-dot cells. Dots 7 and 8 are rejected by
-# the exporter instead of being silently dropped.
-BRAILLE_ASCII_BY_MASK = " A1B'K2L@CIF/MSP\"E3H9O6R^DJG>NTQ,*5<-U8V.%[$+X!&;:4\\0Z7(_?W]#Y)="
+# the exporter instead of being silently dropped. The table is split into chunks
+# to keep this source file readable and avoid brittle escaping around backslash.
+_BRAILLE_ASCII_CHUNKS = (
+    " A1B'K2L@CIF/MSP\"E3H9O6R^DJG>NTQ,",
+    "*5<-U8V.%[$+X!&;:4",
+    "\\0Z7(_?W]#Y)=",
+)
+BRAILLE_ASCII_BY_MASK = "".join(_BRAILLE_ASCII_CHUNKS)
 BRAILLE_ASCII_BY_CHAR = {chr(BRAILLE_BASE + idx): glyph for idx, glyph in enumerate(BRAILLE_ASCII_BY_MASK)}
 BRF_ERROR_REASONS = {'dots_7_or_8_not_supported', 'unsupported_braille_cell'}
 BRF_WARNING_REASONS = {'non_braille_character'}
@@ -163,6 +170,7 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
     brf_text, pages = _paginate(converted_lines, rows)
     diagnostics = _diagnostics_from_counts(unsupported_total, by_reason, by_severity, truncated=diagnostics_truncated, limit=diagnostics_limit)
     report = {
+        'brf_schema_version': BRF_SCHEMA_VERSION,
         'exporter': 'brf_text_export',
         'profile': profile.name,
         'cell_mode': profile.cell_mode,
