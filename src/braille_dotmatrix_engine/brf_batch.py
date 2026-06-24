@@ -6,6 +6,7 @@ from typing import Any
 
 from .brf import validate_brf_text
 from .embosser import GenericEmbosserProfile
+from .schema import BRF_SCHEMA_VERSION
 
 DEFAULT_MAX_BRF_BATCH_FILES = 1000
 DEFAULT_MAX_BRF_FILE_BYTES = 2_000_000
@@ -21,16 +22,18 @@ def _positive_int(name: str, value) -> int:
     return parsed
 
 
-def resolve_brf_input_paths(root: str | Path, pattern: str = '*.txt', *, max_files: int = DEFAULT_MAX_BRF_BATCH_FILES) -> list[Path]:
+def resolve_brf_input_paths(root: str | Path, pattern: str = '*.txt', *, max_files: int = DEFAULT_MAX_BRF_BATCH_FILES, recursive: bool = False) -> list[Path]:
     max_files = _positive_int('max_files', max_files)
     root_path = Path(root)
     if root_path.is_file():
         return [root_path]
     if not root_path.exists():
         raise FileNotFoundError(str(root_path))
-    files = sorted(path for path in root_path.glob(pattern) if path.is_file())
+    iterator = root_path.rglob(pattern) if recursive else root_path.glob(pattern)
+    files = sorted(path for path in iterator if path.is_file())
     if not files:
-        raise FileNotFoundError(f'no files matched {pattern} under {root_path}')
+        scope = 'recursively' if recursive else 'directly'
+        raise FileNotFoundError(f'no files matched {pattern} {scope} under {root_path}')
     if len(files) > max_files:
         raise ValueError(f'too many BRF input files: {len(files)} exceeds max_files={max_files}')
     return files
@@ -70,6 +73,7 @@ def aggregate_brf_file_reports(file_reports: list[dict[str, Any]]) -> dict[str, 
         for reason, count in diagnostics.get('by_reason', {}).items():
             by_reason[reason] = by_reason.get(reason, 0) + int(count)
     return {
+        'brf_schema_version': BRF_SCHEMA_VERSION,
         'total_files': len(file_reports),
         'ok_files': ok_files,
         'warning_files': warning_files,
@@ -108,6 +112,7 @@ def validate_brf_files(
             'brf_export': brf_report,
         })
     return {
+        'brf_schema_version': BRF_SCHEMA_VERSION,
         'aggregate': aggregate_brf_file_reports(file_reports),
         'files': file_reports,
     }
