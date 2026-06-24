@@ -1,38 +1,22 @@
 from __future__ import annotations
-import numbers
 
 import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
+
 from .preprocess import float01
-
-
-def _require_int_positive(name: str, value) -> int:
-    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
-        raise ValueError(f'{name} must be an integer')
-    parsed = int(value)
-    if parsed <= 0:
-        raise ValueError(f'{name} must be positive')
-    return parsed
-
-
-def _validate_image_shape(shape) -> tuple[int, int]:
-    if len(shape) < 2:
-        raise ValueError('shape must contain height and width')
-    h = _require_int_positive('image height', int(shape[0]))
-    w = _require_int_positive('image width', int(shape[1]))
-    return h, w
+from .runtime_validation import require_int_positive, validate_image_shape
 
 
 def _enforce_dot_grid_limit(cfg, dx: int, dy: int) -> None:
-    max_total_dots = _require_int_positive('max_total_dots', getattr(cfg, 'max_total_dots', 2_000_000))
+    max_total_dots = require_int_positive('max_total_dots', getattr(cfg, 'max_total_dots', 2_000_000))
     total = int(dx) * int(dy)
     if total > max_total_dots:
         raise ValueError(f'dot grid too large: {total} dots exceeds max_total_dots={max_total_dots}')
 
 
 def build_dot_grid(cfg, shape):
-    h, w = _validate_image_shape(shape)
-    output_width_cells = _require_int_positive('output_width_cells', cfg.output_width_cells)
+    h, w = validate_image_shape(shape)
+    output_width_cells = require_int_positive('output_width_cells', cfg.output_width_cells)
     dx = max(2, 2 * output_width_cells)
     dy = max(4, int(round((h / max(w, 1)) * dx / 4)) * 4)
     _enforce_dot_grid_limit(cfg, dx, dy)
@@ -83,7 +67,7 @@ def process_tiles(img, coords, cfg):
     for y0 in range(0, h, step):
         for x0 in range(0, w, step):
             y1, x1 = min(y0 + tile, h), min(x0 + tile, w)
-            m = (coords[...,1] >= y0) & (coords[...,1] < y1) & (coords[...,0] >= x0) & (coords[...,0] < x1)
+            m = (coords[..., 1] >= y0) & (coords[..., 1] < y1) & (coords[..., 0] >= x0) & (coords[..., 0] < x1)
             ys, xs = np.where(m)
             if len(ys) == 0:
                 continue

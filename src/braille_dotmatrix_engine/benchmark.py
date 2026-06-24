@@ -17,6 +17,7 @@ import numpy as np
 from .config import BrailleArtConfig
 from .json_utils import dumps_json, write_json
 from .pipeline import process_image
+from .runtime_validation import require_finite
 from .schema import BENCHMARK_SCHEMA_VERSION, RENDER_SCHEMA_VERSION
 
 BENCHMARK_PROFILES: dict[str, list[tuple[str, tuple[int, int]]]] = {
@@ -64,6 +65,16 @@ def _finite_float(value, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         return default
     return parsed if math.isfinite(parsed) else default
+
+
+def _positive_finite_float(value: str) -> float:
+    try:
+        parsed = require_finite('value', value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError('value must be positive')
+    return parsed
 
 
 def _file_size_bytes(path) -> int:
@@ -172,8 +183,14 @@ def run_benchmark_suite(output_dir="artifacts/benchmarks", include_ascii: bool =
 
 def validate_benchmark_rows(rows: list[dict], *, max_runtime_sec: float = 60.0, max_rss_peak_mb: float = 2048.0) -> list[str]:
     issues: list[str] = []
+    max_runtime_sec = require_finite('max_runtime_sec', max_runtime_sec)
+    max_rss_peak_mb = require_finite('max_rss_peak_mb', max_rss_peak_mb)
+    if max_runtime_sec <= 0:
+        issues.append('max_runtime_sec must be positive')
+    if max_rss_peak_mb <= 0:
+        issues.append('max_rss_peak_mb must be positive')
     if not rows:
-        return ["benchmark suite produced no rows"]
+        return [*issues, "benchmark suite produced no rows"]
     for idx, row in enumerate(rows):
         label = f"row {idx} {row.get('name')} {row.get('mode')}"
         runtime = _finite_float(row.get("runtime_sec"), -1.0)
@@ -233,8 +250,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--csv", default="artifacts/benchmarks/benchmark.csv")
     parser.add_argument("--summary", default="artifacts/benchmarks/benchmark_summary.json")
     parser.add_argument("--profile", choices=sorted(BENCHMARK_PROFILES), default="smoke")
-    parser.add_argument("--max-runtime-sec", type=float, default=60.0)
-    parser.add_argument("--max-rss-mb", type=float, default=2048.0)
+    parser.add_argument("--max-runtime-sec", type=_positive_finite_float, default=60.0)
+    parser.add_argument("--max-rss-mb", type=_positive_finite_float, default=2048.0)
     parser.add_argument("--no-ascii", action="store_true")
     args = parser.parse_args(argv)
 

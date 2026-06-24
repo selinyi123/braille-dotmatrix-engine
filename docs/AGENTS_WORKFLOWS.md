@@ -16,12 +16,13 @@ This repository uses a small, repeatable agent-style workflow for hardening and 
 
 1. Never write directly to `main` for repairs.
 2. Use a short branch name with a version or intent, for example:
-   `fix/v1-23-1-hardening-workflows`.
+   `fix/v1-23-2-api-consistency-schema`.
 3. Keep commits grouped by concern:
    - strict JSON / report correctness
    - CLI mode safety
    - BRF / embosser boundary validation
    - renderer direct API hardening
+   - schema/version governance
    - tests / CI / docs
 
 ## Required checks before merge
@@ -33,6 +34,8 @@ ruff check .
 pytest -q --cov=braille_dotmatrix_engine --cov-report=term-missing
 python -m build
 ```
+
+`ruff check .` currently uses the repository's configured `select = ["F"]`, so it is a Pyflakes/correctness gate rather than a full style, import-sort, modernization, or complexity gate. Broader Ruff rule enablement should be done in a separate formatting/cleanup PR.
 
 The GitHub Actions workflow also performs a wheel install smoke test:
 
@@ -55,9 +58,10 @@ braille-dotmatrix --help
 - Direct renderer APIs must reject non-2D binary matrices and empty inputs.
 - BRF batch workflows must cap file count, file size, and retained diagnostics.
 - Benchmark smoke should remain lightweight enough for normal PR CI.
+- Recursive directory scans should not be introduced without explicit file-count and byte-count tests.
 
 ## Release checklist
 
 - Version changes must update README only when intentionally cutting a release.
-- Render schema and benchmark schema versions should change only when their JSON contracts change.
+- Render schema, BRF schema, and benchmark schema versions should change only when their JSON contracts change.
 - BRF contract fixtures should be updated only for stable contract fields, not incidental runtime metadata.

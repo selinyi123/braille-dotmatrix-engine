@@ -42,6 +42,7 @@ Braille/tactile rendering
 |---|---|
 | `config.py` | Configuration dataclasses for geometry, material, printer, rendering, ASCII, chromatic, and resource-limit parameters. |
 | `validation.py` | Central validation gate for public configuration values. |
+| `runtime_validation.py` | Shared direct-API validation helpers for finite numbers, integer parameters, image shapes, and binary matrices. |
 | `preprocess.py` | Image input normalization, grayscale conversion, and CLAHE preprocessing. |
 | `sampling.py` | Dot-grid generation, Gaussian sampling, and tile/overlap sampling. |
 | `dither.py` | Atkinson/Stucki/JJN dithering and local density correction. |
@@ -59,10 +60,11 @@ Braille/tactile rendering
 | `artifacts.py` | Artifact manifests and output directory preparation. |
 | `reports.py` | Render report base/adaptation layer. |
 | `brf.py` | Six-dot Braille ASCII / BRF-like conversion and diagnostics. |
-| `brf_batch.py` | Batch BRF preflight, aggregation, and resource limits. |
+| `brf_batch.py` | Non-recursive batch BRF preflight, aggregation, and resource limits. |
 | `embosser.py` | Generic embosser profile, capacity, and export boundary metadata. |
 | `benchmark.py` | Benchmark profiles, runtime/memory/artifact metrics, and summary artifacts. |
-| `json_utils.py` | Strict JSON serialization for reports and CLI output. |
+| `json_utils.py` | Strict and deterministic JSON serialization for reports and CLI output. |
+| `schema.py` | Package, render, BRF, and benchmark schema version constants. |
 | `cli.py` | Command-line interface for rendering, benchmarks, and BRF preflight modes. |
 
 ## Engineering principles
@@ -74,6 +76,7 @@ Braille/tactile rendering
 5. Treat every exported artifact as reproducible from image, config, and seed.
 6. Make all reports strict-JSON safe for dashboards and contract tests.
 7. Guard direct public-ish APIs, not only the end-to-end pipeline.
+8. Keep schema versions explicit when BRF, benchmark, or render report contracts diverge.
 
 ## Known limitations
 
@@ -83,6 +86,7 @@ Braille/tactile rendering
 - Raster drawing still uses PIL drawing loops; acceptable for V1, but a NumPy/OpenCV rasterizer is preferred for V1.5+.
 - SVG output exports circles but does not yet emit embossing-machine-specific formats.
 - Benchmarking records point-in-time smoke metrics, not longitudinal trend baselines.
+- BRF batch preflight is intentionally non-recursive until recursive traversal has separate resource limits and tests.
 
 ## Next architecture target
 

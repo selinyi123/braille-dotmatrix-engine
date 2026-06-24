@@ -31,7 +31,9 @@ def to_json_safe(value: Any) -> Any:
         return value if math.isfinite(value) else None
     if isinstance(value, dict):
         return {str(key): to_json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, set):
+        return [to_json_safe(item) for item in sorted(value, key=lambda item: repr(item))]
+    if isinstance(value, (list, tuple)):
         return [to_json_safe(item) for item in value]
     return value
 

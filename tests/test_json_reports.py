@@ -14,6 +14,11 @@ def test_dumps_json_replaces_non_finite_floats_with_null():
     assert json.loads(text) == {'nan': None, 'inf': None, 'nested': [None]}
 
 
+def test_dumps_json_serializes_sets_deterministically():
+    text = dumps_json({'items': {'b', 'a'}})
+    assert json.loads(text) == {'items': ['a', 'b']}
+
+
 def test_render_report_is_strict_json_for_constant_image(tmp_path):
     image = tmp_path / 'constant.png'
     cv2.imwrite(str(image), np.zeros((64, 64, 3), dtype=np.uint8))

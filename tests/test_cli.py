@@ -48,6 +48,16 @@ def test_cli_ascii_html_and_quality_controls(tmp_path: Path, monkeypatch):
     assert (tmp_path / 'ascii.json').exists()
 
 
+def test_cli_rejects_non_finite_ascii_float_arguments(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        main(['--mode', 'ASCII_MONO', '--ascii-aspect', 'nan'])
+    assert exc.value.code == 2
+    with pytest.raises(SystemExit) as exc:
+        main(['--mode', 'ASCII_MONO', '--ascii-edge-weight', 'inf'])
+    assert exc.value.code == 2
+
+
 def test_cli_rejects_brf_export_for_ascii_mode(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SystemExit) as exc:

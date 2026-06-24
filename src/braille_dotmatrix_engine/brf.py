@@ -8,6 +8,7 @@ from typing import Any
 from .artifacts import artifact_manifest, legacy_artifact_paths
 from .braille_unicode import BRAILLE_BASE, decode_braille_cell
 from .embosser import GenericEmbosserProfile, assert_embosser_profile, embosser_capacity
+from .schema import BRF_SCHEMA_VERSION
 
 # Braille ASCII glyphs indexed by the Unicode Braille mask U+2800..U+283F.
 # This is intentionally limited to six-dot cells. Dots 7 and 8 are rejected by
@@ -163,6 +164,7 @@ def unicode_braille_to_brf_text(text: str, profile: GenericEmbosserProfile | Non
     brf_text, pages = _paginate(converted_lines, rows)
     diagnostics = _diagnostics_from_counts(unsupported_total, by_reason, by_severity, truncated=diagnostics_truncated, limit=diagnostics_limit)
     report = {
+        'brf_schema_version': BRF_SCHEMA_VERSION,
         'exporter': 'brf_text_export',
         'profile': profile.name,
         'cell_mode': profile.cell_mode,

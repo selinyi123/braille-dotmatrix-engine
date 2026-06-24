@@ -12,7 +12,7 @@ from braille_dotmatrix_engine import (
     write_brf_text,
 )
 from braille_dotmatrix_engine.brf import BrfExportError, brf_report_summary, summarize_brf_diagnostics, validate_brf_text
-from braille_dotmatrix_engine.schema import PACKAGE_VERSION
+from braille_dotmatrix_engine.schema import BRF_SCHEMA_VERSION, PACKAGE_VERSION
 
 
 def test_braille_ascii_mask_table_basics():
@@ -28,6 +28,7 @@ def test_unicode_braille_to_sixdot_text_basic_mapping():
     result = unicode_braille_to_brf_text(text, GenericEmbosserProfile(max_cols=20, max_rows=20))
     assert PACKAGE_VERSION
     assert result.text == 'AB C'
+    assert result.report['brf_schema_version'] == BRF_SCHEMA_VERSION
     assert result.report['ok'] is True
     assert result.report['encoding'] == 'BRAILLE_ASCII_SIX_DOT'
     assert result.report['unsupported_count'] == 0

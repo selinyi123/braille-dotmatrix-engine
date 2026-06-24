@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import numbers
 from pathlib import Path
 
 import numpy as np
@@ -8,32 +7,11 @@ from PIL import Image, ImageDraw
 from scipy.ndimage import gaussian_filter
 
 from .geometry import compensated_dot_radius_mm
-
-
-def _require_int_positive(name: str, value) -> int:
-    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
-        raise ValueError(f'{name} must be an integer')
-    parsed = int(value)
-    if parsed <= 0:
-        raise ValueError(f'{name} must be positive')
-    return parsed
-
-
-def _as_binary_matrix(binary, cfg=None) -> np.ndarray:
-    b = np.asarray(binary, dtype=bool)
-    if b.ndim != 2:
-        raise ValueError('binary must be a 2D dot matrix')
-    if b.size == 0 or b.shape[0] <= 0 or b.shape[1] <= 0:
-        raise ValueError('binary dot matrix must be non-empty')
-    if cfg is not None:
-        limit = getattr(cfg, 'max_total_dots', None)
-        if limit is not None and b.size > _require_int_positive('max_total_dots', limit):
-            raise ValueError(f'binary dot matrix too large: {b.size} dots exceeds max_total_dots={limit}')
-    return b
+from .runtime_validation import as_binary_matrix, require_int_positive
 
 
 def _render_spacing_px(cfg) -> int:
-    return _require_int_positive('render_spacing_px', getattr(cfg, 'render_spacing_px', 10))
+    return require_int_positive('render_spacing_px', getattr(cfg, 'render_spacing_px', 10))
 
 
 def _dot_radius_px(cfg):
@@ -42,7 +20,7 @@ def _dot_radius_px(cfg):
 
 
 def render_tactile_png(binary, cfg, path):
-    b = _as_binary_matrix(binary, cfg)
+    b = as_binary_matrix(binary, cfg)
     spacing = _render_spacing_px(cfg)
     image = Image.new('L', (b.shape[1] * spacing, b.shape[0] * spacing), 255)
     draw = ImageDraw.Draw(image)
@@ -57,7 +35,7 @@ def render_tactile_png(binary, cfg, path):
 
 
 def render_screen_png(binary, cfg, path):
-    b = _as_binary_matrix(binary, cfg)
+    b = as_binary_matrix(binary, cfg)
     spacing = _render_spacing_px(cfg)
     image = Image.new('L', (b.shape[1] * spacing, b.shape[0] * spacing), 0)
     draw = ImageDraw.Draw(image)
@@ -86,7 +64,7 @@ def render_braille_png(binary, cfg, path):
 
 
 def physical_compliance_check(binary, cfg):
-    _as_binary_matrix(binary, cfg)
+    as_binary_matrix(binary, cfg)
     gap = cfg.dot_spacing_mm - cfg.dot_diameter_mm
     issues = [] if gap >= cfg.safety_gap_mm else [f'Edge gap {gap:.3f} mm < safety gap {cfg.safety_gap_mm:.3f} mm']
     if cfg.dot_diameter_mm <= 0:
@@ -97,7 +75,7 @@ def physical_compliance_check(binary, cfg):
 
 
 def raster_roundtrip_check(binary, png_path, cfg):
-    expected = _as_binary_matrix(binary, cfg)
+    expected = as_binary_matrix(binary, cfg)
     img = np.asarray(Image.open(png_path).convert('L'))
     recovered = np.zeros_like(expected)
     spacing = _render_spacing_px(cfg)

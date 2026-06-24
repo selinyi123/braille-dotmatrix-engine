@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.23.0`
+`v1.23.1`
 
 ## Status
 
@@ -27,11 +27,21 @@ This repository is currently in the **V1 engineering prototype** stage:
 - JSON contract fixtures for BRF report regression tests
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
-- centralized render/benchmark schema constants
+- centralized render, BRF, and benchmark schema constants
+- shared runtime validation helpers for direct API boundaries
 - centralized configuration validation before rendering
 - tactile output validation for spacing, active-dot collisions, and occupancy
 - deterministic seed path for density correction
 - CI test scaffold
+
+### v1.23.1 API consistency and schema notes
+
+- Added shared runtime validation helpers for integer, finite-number, image-shape, and binary-matrix checks.
+- Hardened tactile, metrics, chromatic, sampling, raster, and vector direct API boundaries.
+- Normalized image loading through the preprocessing boundary.
+- Added `BRF_SCHEMA_VERSION = "1.1"` and bumped `BENCHMARK_SCHEMA_VERSION` to `"1.12"`.
+- Kept render schema at `1.11` because the top-level render report schema is unchanged.
+- Directory BRF batch preflight is non-recursive by default; `--brf-batch-pattern` is applied with `Path.glob()`.
 
 ### v1.23.0 BRF JSON contract notes
 
@@ -57,7 +67,7 @@ braille-dotmatrix \
   --report-json artifacts/brf_preflight_report.json
 ```
 
-Validate a directory of Unicode Braille text files:
+Validate a non-recursive directory of Unicode Braille text files:
 
 ```bash
 braille-dotmatrix \
@@ -111,7 +121,7 @@ These files intentionally store only stable report fields used for regression te
 
 ## Version and schema policy
 
-Package version, render schema version, and benchmark schema version are intentionally independent. `v1.23.0` keeps render schema at `1.11`.
+Package version, render schema version, BRF schema version, and benchmark schema version are intentionally independent. `v1.23.1` keeps render schema at `1.11`, uses BRF schema `1.1`, and uses benchmark schema `1.12`.
 
 ## Tests
 

@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw
 from .artifacts import artifact_manifest, legacy_artifact_paths, prepare_artifact_dirs
 from .config import BrailleArtConfig
 from .json_utils import write_json
+from .preprocess import as_bgr_uint8
 from .renderers import RenderContext, get_renderer
 from .reports import adapt_render_report, base_render_report
 from .validation import validate_config
@@ -39,10 +40,10 @@ def _resolve_html_output(cfg: BrailleArtConfig, output_txt, output_html):
 
 
 def _load_image(image_path):
-    img = cv2.imread(str(image_path))
+    img = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
     if img is None:
         raise FileNotFoundError(f'Image not found: {image_path}')
-    return img
+    return as_bgr_uint8(img)
 
 
 def _write_report_json(report: dict, report_json) -> None:

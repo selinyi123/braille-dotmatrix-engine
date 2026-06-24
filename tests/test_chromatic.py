@@ -33,6 +33,13 @@ def test_chromatic_backend_rejects_empty_source_image():
         build_chromatic_array(binary, np.zeros((0, 8, 3), dtype=np.uint8), cfg)
 
 
+def test_chromatic_backend_validates_source_before_tiny_binary_return():
+    cfg = BrailleArtConfig(mode='CHROMATIC')
+    binary = np.ones((2, 1), dtype=bool)
+    with pytest.raises(ValueError, match='non-empty'):
+        build_chromatic_array(binary, np.zeros((0, 8, 3), dtype=np.uint8), cfg)
+
+
 def test_chromatic_backend_rejects_fractional_cell_dimensions_for_direct_api_calls():
     cfg = BrailleArtConfig(mode='CHROMATIC')
     cfg.chromatic_cell_w_px = 8.5

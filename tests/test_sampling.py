@@ -14,6 +14,14 @@ def test_build_dot_grid_rejects_invalid_shape():
         build_dot_grid(cfg, (32, 0))
 
 
+def test_build_dot_grid_rejects_fractional_shape_values():
+    cfg = BrailleArtConfig(output_width_cells=4)
+    with pytest.raises(ValueError, match="image height"):
+        build_dot_grid(cfg, (32.5, 32))
+    with pytest.raises(ValueError, match="image width"):
+        build_dot_grid(cfg, (32, 32.5))
+
+
 def test_build_dot_grid_rejects_excessive_total_dots_before_allocation():
     cfg = BrailleArtConfig(output_width_cells=10, max_total_dots=100)
     with pytest.raises(ValueError, match="max_total_dots"):

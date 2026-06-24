@@ -1,6 +1,8 @@
 import csv
 import json
 
+import pytest
+
 import braille_dotmatrix_engine.benchmark as benchmark_mod
 from braille_dotmatrix_engine.benchmark import (
     BENCHMARK_PROFILES,
@@ -65,6 +67,22 @@ def test_validate_benchmark_rows_detects_bad_values():
     assert issues
 
 
+def test_validate_benchmark_rows_rejects_non_finite_thresholds():
+    rows = [{
+        'name': 'unit',
+        'mode': 'TACTILE',
+        'runtime_sec': 0.1,
+        'rss_peak_mb': 1,
+        'estimated_working_set_mb': 1,
+        'artifact_total_bytes': 1,
+        'occupancy_ratio': 0.5,
+        'schema_version': RENDER_SCHEMA_VERSION,
+        'benchmark_schema_version': BENCHMARK_SCHEMA_VERSION,
+    }]
+    with pytest.raises(ValueError, match='max_runtime_sec'):
+        validate_benchmark_rows(rows, max_runtime_sec=float('nan'), max_rss_peak_mb=10)
+
+
 def test_write_benchmark_csv_and_summary(tmp_path):
     rows = [{
         'name': 'unit',
@@ -86,6 +104,7 @@ def test_write_benchmark_csv_and_summary(tmp_path):
     summary = json.loads(open(summary_path, encoding='utf-8').read())
     assert summary['ok'] is True
     assert summary['render_schema_version'] == RENDER_SCHEMA_VERSION
+    assert summary['benchmark_schema_version'] == BENCHMARK_SCHEMA_VERSION
     assert summary['profiles'] == ['unit']
     assert summary['total_artifact_bytes'] == 42
 
@@ -93,6 +112,17 @@ def test_write_benchmark_csv_and_summary(tmp_path):
 def test_rss_fallback_without_resource(monkeypatch):
     monkeypatch.setattr(benchmark_mod, 'resource', None)
     assert benchmark_mod._rss_mb() == 0.0
+
+
+def test_benchmark_module_main_rejects_non_finite_thresholds(tmp_path):
+    with pytest.raises(SystemExit) as exc:
+        main([
+            '--output-dir', str(tmp_path / 'bench'),
+            '--csv', str(tmp_path / 'bench' / 'benchmark.csv'),
+            '--summary', str(tmp_path / 'bench' / 'summary.json'),
+            '--max-runtime-sec', 'nan',
+        ])
+    assert exc.value.code == 2
 
 
 def test_benchmark_module_main_writes_artifacts(tmp_path):

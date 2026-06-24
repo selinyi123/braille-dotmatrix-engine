@@ -9,6 +9,7 @@ from .brf_batch import DEFAULT_BRF_DIAGNOSTICS_LIMIT, DEFAULT_MAX_BRF_BATCH_FILE
 from .embosser import build_embosser_profile, embosser_profile_names
 from .engine import BrailleArtConfig, create_demo_image, process_image
 from .json_utils import dumps_json, write_json
+from .runtime_validation import require_finite, require_unit_interval
 from .schema import PACKAGE_VERSION, RENDER_SCHEMA_VERSION
 
 BRF_COMPATIBLE_MODES = {"TACTILE", "SCREEN", "CHROMATIC"}
@@ -21,11 +22,25 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
-def _unit_float(value: str) -> float:
-    parsed = float(value)
-    if parsed < 0 or parsed > 1:
-        raise argparse.ArgumentTypeError('value must be between 0 and 1')
+def _finite_float(value: str) -> float:
+    try:
+        return require_finite('value', value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
+
+
+def _positive_float(value: str) -> float:
+    parsed = _finite_float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError('value must be positive')
     return parsed
+
+
+def _unit_float(value: str) -> float:
+    try:
+        return require_unit_interval('value', value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
 
 
 def _write_report_json(report: dict, report_json: str) -> None:
@@ -103,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--brf-rows", type=_positive_int, default=None, help="optional BRF lines per page override")
     p.add_argument("--strict-brf", action="store_true", help="validate BRF diagnostics")
     p.add_argument("--brf-validate-only", action="store_true", help="add BRF diagnostics to the report without writing a BRF file")
-    p.add_argument("--brf-batch-pattern", default="*.txt", help="glob pattern for directory batch preflight")
+    p.add_argument("--brf-batch-pattern", default="*.txt", help="glob pattern for directory batch preflight; non-recursive")
     p.add_argument("--brf-batch-max-files", type=_positive_int, default=DEFAULT_MAX_BRF_BATCH_FILES, help="maximum files accepted by BRF batch preflight")
     p.add_argument("--brf-max-file-bytes", type=_positive_int, default=DEFAULT_MAX_BRF_FILE_BYTES, help="maximum bytes accepted for each BRF preflight input file")
     p.add_argument("--brf-diagnostics-limit", type=_positive_int, default=DEFAULT_BRF_DIAGNOSTICS_LIMIT, help="maximum detailed diagnostics retained per BRF report")
@@ -118,8 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--strict-tactile", action="store_true", help="fail tactile-mode export when tactile validation reports errors")
     p.add_argument("--ascii-charset", default=None)
     p.add_argument("--ascii-preset", choices=["custom", "standard", "dense", "blocks", "binary"], default=None)
-    p.add_argument("--ascii-aspect", type=float, default=None)
-    p.add_argument("--ascii-edge-weight", type=float, default=None)
+    p.add_argument("--ascii-aspect", type=_positive_float, default=None)
+    p.add_argument("--ascii-edge-weight", type=_unit_float, default=None)
     p.add_argument("--ascii-html", action="store_true")
     p.add_argument("--braille-target-density", type=_unit_float, default=None)
     a = p.parse_args(argv)
