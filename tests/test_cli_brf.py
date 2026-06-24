@@ -29,7 +29,7 @@ def test_cli_writes_brf_and_updates_report(tmp_path):
     assert output_brf.read_text(encoding='ascii')
     report = json.loads(report_json.read_text(encoding='utf-8'))
     assert report['package_version']
-    assert report['schema_version'] == '1.11'
+    assert report['schema_version'] == '1.12'
     assert report['artifacts']['brf'].endswith('out.brf')
     assert report['artifact_manifest']['brf']['exists'] is True
     assert report['brf_export']['path'].endswith('out.brf')
