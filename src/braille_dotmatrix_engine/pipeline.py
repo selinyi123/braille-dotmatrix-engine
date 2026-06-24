@@ -39,11 +39,31 @@ def _resolve_html_output(cfg: BrailleArtConfig, output_txt, output_html):
     return None
 
 
-def _load_image(image_path):
-    img = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+def _check_input_file_size(path: Path, cfg: BrailleArtConfig) -> None:
+    max_bytes = int(getattr(cfg, 'max_input_file_bytes', 50_000_000))
+    size = path.stat().st_size
+    if size > max_bytes:
+        raise ValueError(f'input image file too large: {size} bytes exceeds max_input_file_bytes={max_bytes}')
+
+
+def _check_input_pixels(img: np.ndarray, cfg: BrailleArtConfig) -> None:
+    max_pixels = int(getattr(cfg, 'max_input_pixels', 50_000_000))
+    pixels = int(img.shape[0]) * int(img.shape[1])
+    if pixels > max_pixels:
+        raise ValueError(f'input image too large: {pixels} pixels exceeds max_input_pixels={max_pixels}')
+
+
+def _load_image(image_path, cfg: BrailleArtConfig):
+    path = Path(image_path)
+    if not path.exists():
+        raise FileNotFoundError(f'Image not found: {image_path}')
+    _check_input_file_size(path, cfg)
+    img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
     if img is None:
         raise FileNotFoundError(f'Image not found: {image_path}')
-    return as_bgr_uint8(img)
+    img = as_bgr_uint8(img)
+    _check_input_pixels(img, cfg)
+    return img
 
 
 def _write_report_json(report: dict, report_json) -> None:
@@ -65,7 +85,7 @@ def process_image(image_path, cfg: BrailleArtConfig, output_png='output_braille.
     start = time.time()
     output_html = _resolve_html_output(cfg, output_txt, output_html)
     prepare_artifact_dirs(output_png, output_txt, report_json, output_svg, output_html)
-    img = _load_image(image_path)
+    img = _load_image(image_path, cfg)
     context = RenderContext(
         image_path=image_path,
         output_png=output_png,
