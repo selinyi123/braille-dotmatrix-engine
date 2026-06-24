@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.28.0`
+`v1.29.0`
 
 ## Status
 
@@ -29,6 +29,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - BRF batch contract normalization for generated reports
 - structured JSON report diff helper for contract drift review
 - blocking BRF contract drift policy after diagnostic artifact upload
+- intentional contract migration review records with required reasons
 - SHA-256 artifact provenance manifest generation
 - BRF batch CI report artifact upload with provenance manifest
 - benchmark profiles for smoke, medium, and stress image sizes
@@ -41,14 +42,14 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.28.0 blocking drift policy notes
+### v1.29.0 intentional contract migration notes
 
-- Added `braille_dotmatrix_engine.report_diff_policy`.
-- Added `evaluate_report_diff_policy()` and `write_report_diff_policy()`.
-- Added `python -m braille_dotmatrix_engine.report_diff_policy` CLI entry point.
-- CI now writes `drift_policy.json` from `report_diff.json`.
-- CI uploads report, contract, diff, drift policy, and provenance before enforcing the blocking drift gate.
-- Drift becomes blocking only after diagnostic artifacts are generated and uploaded.
+- Added `braille_dotmatrix_engine.contract_migration`.
+- Added `propose_contract_migration()` and `write_contract_migration()`.
+- Added `python -m braille_dotmatrix_engine.contract_migration` CLI entry point.
+- Contract migrations with drift require a non-empty `--reason`.
+- Migration records include diff counts, changed paths, a review checklist, and the embedded diff.
+- Added a pull request checklist for intentional contract changes.
 
 ## Install
 
@@ -88,6 +89,16 @@ Evaluate and enforce a report diff policy:
 python -m braille_dotmatrix_engine.report_diff_policy artifacts/brf/report_diff.json --output artifacts/brf/drift_policy.json --enforce
 ```
 
+Create a reviewed contract migration record. `--reason` is required when the proposed contract differs from the current contract:
+
+```bash
+python -m braille_dotmatrix_engine.contract_migration \
+  examples/brf/snapshots/batch_examples.json \
+  artifacts/brf/brf_batch_contract.json \
+  --output artifacts/brf/contract_migration.json \
+  --reason "intentional BRF profile contract update"
+```
+
 Generate a SHA-256 artifact provenance manifest:
 
 ```bash
@@ -106,6 +117,7 @@ braille-dotmatrix --benchmark --benchmark-csv artifacts/benchmark.csv --benchmar
 from pathlib import Path
 import json
 from braille_dotmatrix_engine.brf_contract import write_batch_contract_from_report
+from braille_dotmatrix_engine.contract_migration import propose_contract_migration
 from braille_dotmatrix_engine.report_diff import diff_reports
 from braille_dotmatrix_engine.report_diff_policy import evaluate_report_diff_policy
 
@@ -113,6 +125,7 @@ contract = write_batch_contract_from_report("artifacts/brf/brf_batch_report.json
 expected = json.loads(Path("examples/brf/snapshots/batch_examples.json").read_text(encoding="utf-8"))
 diff = diff_reports(expected, contract)
 print(evaluate_report_diff_policy(diff)["status"])
+print(propose_contract_migration(expected, contract, reason="intentional update")["status"])
 ```
 
 ## JSON contracts
@@ -123,7 +136,7 @@ Checked-in BRF report contracts live under:
 examples/brf/snapshots/
 ```
 
-These files intentionally store only stable report fields used for regression tests.
+These files intentionally store only stable report fields used for regression tests. When a checked-in contract needs to change intentionally, create a contract migration record with a clear reason and update tests and snapshots in the same PR.
 
 ## Outputs
 
