@@ -15,21 +15,21 @@
   "files": [
     {
       "name": "eight_dot_error.txt",
-      "summary": "BRF issues; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=0; errors=1; reasons=dots_7_or_8_not_supported:1",
+      "summary": "BRF issues; profile=a4-40x25; pages=1; cols=40; rows=25; warnings=0; errors=1; reasons=dots_7_or_8_not_supported:1",
       "ok": false,
       "warning_count": 0,
       "error_count": 1
     },
     {
       "name": "non_braille_warning.txt",
-      "summary": "BRF issues; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=1; errors=0; reasons=non_braille_character:1",
+      "summary": "BRF issues; profile=a4-40x25; pages=1; cols=40; rows=25; warnings=1; errors=0; reasons=non_braille_character:1",
       "ok": false,
       "warning_count": 1,
       "error_count": 0
     },
     {
       "name": "valid_six_dot.txt",
-      "summary": "BRF ok; profile=generic-embosser; pages=1; cols=30; rows=26; warnings=0; errors=0; reasons=none",
+      "summary": "BRF ok; profile=a4-40x25; pages=1; cols=40; rows=25; warnings=0; errors=0; reasons=none",
       "ok": true,
       "warning_count": 0,
       "error_count": 0
