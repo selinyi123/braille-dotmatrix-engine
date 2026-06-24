@@ -22,6 +22,7 @@ from .embosser import (
 from .braille_enhance import enhance_sampled_values
 from .braille_quality import analyze_braille_quality, apply_density_control
 from .geometry import compensated_dot_radius_mm, dot_radius_report
+from .release_attestation import RELEASE_ATTESTATION_PLAN_SCHEMA_VERSION, build_release_attestation_plan, write_release_attestation_plan
 from .renderers import RenderContext, RenderResult, get_renderer, renderer_names
 from .report_diff import diff_reports, summarize_diff
 from .report_diff_policy import REPORT_DIFF_POLICY_SCHEMA_VERSION, evaluate_report_diff_policy, write_report_diff_policy
@@ -89,6 +90,9 @@ __all__ = [
     'analyze_braille_quality',
     'compensated_dot_radius_mm',
     'dot_radius_report',
+    'RELEASE_ATTESTATION_PLAN_SCHEMA_VERSION',
+    'build_release_attestation_plan',
+    'write_release_attestation_plan',
     'RenderContext',
     'RenderResult',
     'get_renderer',

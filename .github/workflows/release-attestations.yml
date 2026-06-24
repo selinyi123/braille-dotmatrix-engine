@@ -1,0 +1,84 @@
+name: release-attestations
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  release-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -U pip
+      - run: pip install -e ".[dev]"
+      - name: Build wheel and sdist
+        run: python -m build
+      - name: Collect distribution artifacts
+        run: |
+          mkdir -p artifacts/release
+          cp dist/* artifacts/release/
+      - name: Generate BRF release report
+        run: |
+          braille-dotmatrix \
+            --brf-preflight-batch examples/brf \
+            --brf-batch-pattern "*.txt" \
+            --brf-print-summary \
+            --report-json artifacts/release/brf_batch_report.json
+      - name: Normalize BRF release contract
+        run: |
+          python -m braille_dotmatrix_engine.brf_contract \
+            artifacts/release/brf_batch_report.json \
+            --output artifacts/release/brf_batch_contract.json
+      - name: Generate BRF release contract diff
+        run: |
+          braille-dotmatrix \
+            --report-diff-old examples/brf/snapshots/batch_examples.json \
+            --report-diff-new artifacts/release/brf_batch_contract.json \
+            --report-json artifacts/release/report_diff.json \
+            --report-diff-print-summary
+      - name: Evaluate BRF drift policy
+        run: |
+          python -m braille_dotmatrix_engine.report_diff_policy \
+            artifacts/release/report_diff.json \
+            --output artifacts/release/drift_policy.json \
+            --enforce
+      - name: Generate release artifact provenance manifest
+        run: |
+          python -m braille_dotmatrix_engine.artifact_provenance \
+            artifacts/release \
+            --output artifacts/release/provenance_manifest.json \
+            --label release-artifacts
+      - name: Generate release attestation plan
+        run: |
+          python -m braille_dotmatrix_engine.release_attestation \
+            artifacts/release \
+            --output artifacts/release/release_attestation_plan.json
+      - name: Generate GitHub artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            artifacts/release/*.whl
+            artifacts/release/*.tar.gz
+            artifacts/release/brf_batch_report.json
+            artifacts/release/brf_batch_contract.json
+            artifacts/release/report_diff.json
+            artifacts/release/drift_policy.json
+            artifacts/release/provenance_manifest.json
+            artifacts/release/release_attestation_plan.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-artifacts
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 30
