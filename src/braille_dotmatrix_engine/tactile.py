@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+
 import numpy as np
 
 from .geometry import dot_radius_report
+from .runtime_validation import as_binary_matrix
 
 
 def geometry_report(cfg) -> dict:
@@ -33,7 +35,7 @@ def geometry_report(cfg) -> dict:
 
 
 def binary_to_dot_positions_mm(binary, cfg):
-    b = np.asarray(binary, dtype=bool)
+    b = as_binary_matrix(binary, cfg)
     ys, xs = np.where(b)
     spacing = float(cfg.dot_spacing_mm)
     positions = []
@@ -43,7 +45,7 @@ def binary_to_dot_positions_mm(binary, cfg):
 
 
 def _neighbor_contact_count(binary, required_gap_mm, cfg) -> dict:
-    b = np.asarray(binary, dtype=bool)
+    b = as_binary_matrix(binary, cfg)
     dot_diameter = float(cfg.dot_diameter_mm)
     spacing = float(cfg.dot_spacing_mm)
     offsets = [(0, 1), (1, 0), (1, 1), (1, -1)]
@@ -73,7 +75,7 @@ def _neighbor_contact_count(binary, required_gap_mm, cfg) -> dict:
 
 
 def validate_tactile_output(binary, cfg) -> dict:
-    b = np.asarray(binary, dtype=bool)
+    b = as_binary_matrix(binary, cfg)
     min_diameter = float(getattr(cfg.geometry, 'min_dot_diameter_mm', 0.80))
     min_spacing = float(getattr(cfg.geometry, 'min_dot_spacing_mm', 2.00))
     issues = []

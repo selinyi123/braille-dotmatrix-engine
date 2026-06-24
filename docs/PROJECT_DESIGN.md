@@ -42,6 +42,7 @@ Braille/tactile rendering
 |---|---|
 | `config.py` | Configuration dataclasses for geometry, material, printer, rendering, ASCII, chromatic, and resource-limit parameters. |
 | `validation.py` | Central validation gate for public configuration values. |
+| `runtime_validation.py` | Shared strict direct-API runtime validation helpers for finite numbers, integral dimensions, and binary matrices. |
 | `preprocess.py` | Image input normalization, grayscale conversion, and CLAHE preprocessing. |
 | `sampling.py` | Dot-grid generation, Gaussian sampling, and tile/overlap sampling. |
 | `dither.py` | Atkinson/Stucki/JJN dithering and local density correction. |
@@ -59,7 +60,7 @@ Braille/tactile rendering
 | `artifacts.py` | Artifact manifests and output directory preparation. |
 | `reports.py` | Render report base/adaptation layer. |
 | `brf.py` | Six-dot Braille ASCII / BRF-like conversion and diagnostics. |
-| `brf_batch.py` | Batch BRF preflight, aggregation, and resource limits. |
+| `brf_batch.py` | Batch BRF preflight, aggregation, recursion option, and resource limits. |
 | `embosser.py` | Generic embosser profile, capacity, and export boundary metadata. |
 | `benchmark.py` | Benchmark profiles, runtime/memory/artifact metrics, and summary artifacts. |
 | `json_utils.py` | Strict JSON serialization for reports and CLI output. |
@@ -74,6 +75,7 @@ Braille/tactile rendering
 5. Treat every exported artifact as reproducible from image, config, and seed.
 6. Make all reports strict-JSON safe for dashboards and contract tests.
 7. Guard direct public-ish APIs, not only the end-to-end pipeline.
+8. Route repeated runtime validation through shared helpers instead of module-local copies.
 
 ## Known limitations
 
@@ -83,6 +85,7 @@ Braille/tactile rendering
 - Raster drawing still uses PIL drawing loops; acceptable for V1, but a NumPy/OpenCV rasterizer is preferred for V1.5+.
 - SVG output exports circles but does not yet emit embossing-machine-specific formats.
 - Benchmarking records point-in-time smoke metrics, not longitudinal trend baselines.
+- ASCII diagnostic mode and ASCII fast path still share concepts across two renderer paths and should be unified in a later cleanup.
 
 ## Next architecture target
 

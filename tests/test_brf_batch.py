@@ -5,6 +5,7 @@ import pytest
 
 from braille_dotmatrix_engine.brf_batch import resolve_brf_input_paths, validate_brf_files
 from braille_dotmatrix_engine.cli import main
+from braille_dotmatrix_engine.schema import BRF_SCHEMA_VERSION
 
 EXAMPLES = Path('examples/brf')
 
@@ -13,6 +14,17 @@ def test_resolve_brf_input_paths_for_directory():
     paths = resolve_brf_input_paths(EXAMPLES, '*.txt')
     names = [path.name for path in paths]
     assert names == ['eight_dot_error.txt', 'non_braille_warning.txt', 'valid_six_dot.txt']
+
+
+def test_resolve_brf_input_paths_supports_recursive_scan(tmp_path):
+    root = tmp_path / 'root'
+    nested = root / 'nested'
+    nested.mkdir(parents=True)
+    (nested / 'sample.txt').write_text('⠁', encoding='utf-8')
+    with pytest.raises(FileNotFoundError):
+        resolve_brf_input_paths(root, '*.txt')
+    paths = resolve_brf_input_paths(root, '*.txt', recursive=True)
+    assert [path.name for path in paths] == ['sample.txt']
 
 
 def test_resolve_brf_input_paths_rejects_too_many_files():
@@ -24,6 +36,8 @@ def test_validate_brf_files_aggregate_examples():
     paths = resolve_brf_input_paths(EXAMPLES, '*.txt')
     report = validate_brf_files(paths)
     aggregate = report['aggregate']
+    assert report['brf_schema_version'] == BRF_SCHEMA_VERSION
+    assert aggregate['brf_schema_version'] == BRF_SCHEMA_VERSION
     assert aggregate['total_files'] == 3
     assert aggregate['ok_files'] == 1
     assert aggregate['warning_files'] == 1
@@ -64,9 +78,28 @@ def test_cli_brf_preflight_batch_report(tmp_path):
     assert rc == 0
     report = json.loads(report_json.read_text(encoding='utf-8'))
     assert report['mode'] == 'BRF_PREFLIGHT_BATCH'
+    assert report['brf_schema_version'] == BRF_SCHEMA_VERSION
+    assert report['batch']['recursive'] is False
     assert report['batch']['aggregate']['total_files'] == 3
     assert report['batch']['aggregate']['ok_files'] == 1
     assert len(report['batch']['files']) == 3
+
+
+def test_cli_brf_preflight_batch_recursive_report(tmp_path):
+    root = tmp_path / 'root'
+    nested = root / 'nested'
+    nested.mkdir(parents=True)
+    (nested / 'sample.txt').write_text('⠁', encoding='utf-8')
+    report_json = tmp_path / 'batch.json'
+    rc = main([
+        '--brf-preflight-batch', str(root),
+        '--brf-batch-recursive',
+        '--report-json', str(report_json),
+    ])
+    assert rc == 0
+    report = json.loads(report_json.read_text(encoding='utf-8'))
+    assert report['batch']['recursive'] is True
+    assert report['batch']['aggregate']['total_files'] == 1
 
 
 def test_cli_brf_preflight_batch_strict_exit_code(tmp_path):

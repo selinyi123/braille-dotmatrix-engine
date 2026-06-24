@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import numbers
 from pathlib import Path
 
 import cv2
@@ -9,17 +8,9 @@ from PIL import Image
 from scipy.ndimage import gaussian_filter
 
 from .preprocess import as_bgr_uint8
+from .runtime_validation import as_binary_matrix, require_int_positive
 
 __all__ = ["build_chromatic_array", "render_chromatic_png"]
-
-
-def _require_int_positive(name: str, value) -> int:
-    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
-        raise ValueError(f"{name} must be an integer")
-    parsed = int(value)
-    if parsed <= 0:
-        raise ValueError(f"{name} must be positive")
-    return parsed
 
 
 def _as_rgb_float(source_bgr: np.ndarray) -> np.ndarray:
@@ -73,21 +64,19 @@ def _neutral_aware_saturation(colors: np.ndarray, cfg) -> np.ndarray:
 
 
 def build_chromatic_array(binary, source_bgr, cfg) -> np.ndarray:
-    b = np.asarray(binary, dtype=bool)
-    if b.ndim != 2:
-        raise ValueError("binary must be a 2D dot matrix")
+    b = as_binary_matrix(binary, cfg)
+    src = _enhance_source(_as_rgb_float(source_bgr), cfg)
     dot_h, dot_w = b.shape
     if dot_h < 4 or dot_w < 2:
         return np.zeros((1, 1, 3), dtype=np.uint8)
 
-    cell_w = _require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10))
-    cell_h = _require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16))
+    cell_w = require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10))
+    cell_h = require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16))
     rows = dot_h // 4
     cols = dot_w // 2
     out_h = max(1, rows * cell_h)
     out_w = max(1, cols * cell_w)
 
-    src = _enhance_source(_as_rgb_float(source_bgr), cfg)
     src = cv2.resize(src, (dot_w, dot_h), interpolation=cv2.INTER_AREA)
     luma = 0.299 * src[:, :, 0] + 0.587 * src[:, :, 1] + 0.114 * src[:, :, 2]
     threshold = float(getattr(cfg, "chromatic_luma_threshold", 108))
@@ -128,7 +117,7 @@ def render_chromatic_png(binary, source_bgr, cfg, path) -> dict:
     return {
         "backend": "CHROMATIC",
         "shape": [int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])],
-        "cell_w_px": _require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10)),
-        "cell_h_px": _require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16)),
+        "cell_w_px": require_int_positive("chromatic_cell_w_px", getattr(cfg, "chromatic_cell_w_px", 10)),
+        "cell_h_px": require_int_positive("chromatic_cell_h_px", getattr(cfg, "chromatic_cell_h_px", 16)),
         "sigma_ratio": float(getattr(cfg, "chromatic_sigma_ratio", 0.62)),
     }

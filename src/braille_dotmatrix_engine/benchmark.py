@@ -17,6 +17,7 @@ import numpy as np
 from .config import BrailleArtConfig
 from .json_utils import dumps_json, write_json
 from .pipeline import process_image
+from .runtime_validation import require_int_positive, require_positive
 from .schema import BENCHMARK_SCHEMA_VERSION, RENDER_SCHEMA_VERSION
 
 BENCHMARK_PROFILES: dict[str, list[tuple[str, tuple[int, int]]]] = {
@@ -66,6 +67,13 @@ def _finite_float(value, default: float = 0.0) -> float:
     return parsed if math.isfinite(parsed) else default
 
 
+def _positive_float_arg(value: str) -> float:
+    try:
+        return require_positive('value', value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def _file_size_bytes(path) -> int:
     if path is None:
         return 0
@@ -74,7 +82,9 @@ def _file_size_bytes(path) -> int:
 
 
 def estimate_image_memory_mb(width: int, height: int) -> dict[str, float]:
-    pixels = max(0, int(width)) * max(0, int(height))
+    width = require_int_positive('width', width)
+    height = require_int_positive('height', height)
+    pixels = width * height
     mib = 1024 * 1024
     input_rgb = pixels * 3
     gray_float = pixels * 4
@@ -88,6 +98,8 @@ def estimate_image_memory_mb(width: int, height: int) -> dict[str, float]:
 
 
 def create_synthetic_image(path, width: int = 256, height: int = 192) -> str:
+    width = require_int_positive('width', width)
+    height = require_int_positive('height', height)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     x = np.linspace(0, 1, width, dtype=np.float32)
@@ -107,6 +119,8 @@ def run_one_benchmark(name: str, image_shape: tuple[int, int], mode: str, output
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     height, width = image_shape
+    height = require_int_positive('height', height)
+    width = require_int_positive('width', width)
     image = create_synthetic_image(output_dir / f"{name}_{mode.lower()}_input.png", width=width, height=height)
     cfg = BrailleArtConfig(output_width_cells=max(12, min(96, width // 8)), mode=mode, render_spacing_px=6)
     output_png = output_dir / f"{name}_{mode.lower()}.png"
@@ -171,6 +185,8 @@ def run_benchmark_suite(output_dir="artifacts/benchmarks", include_ascii: bool =
 
 
 def validate_benchmark_rows(rows: list[dict], *, max_runtime_sec: float = 60.0, max_rss_peak_mb: float = 2048.0) -> list[str]:
+    max_runtime_sec = require_positive('max_runtime_sec', max_runtime_sec)
+    max_rss_peak_mb = require_positive('max_rss_peak_mb', max_rss_peak_mb)
     issues: list[str] = []
     if not rows:
         return ["benchmark suite produced no rows"]
@@ -233,8 +249,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--csv", default="artifacts/benchmarks/benchmark.csv")
     parser.add_argument("--summary", default="artifacts/benchmarks/benchmark_summary.json")
     parser.add_argument("--profile", choices=sorted(BENCHMARK_PROFILES), default="smoke")
-    parser.add_argument("--max-runtime-sec", type=float, default=60.0)
-    parser.add_argument("--max-rss-mb", type=float, default=2048.0)
+    parser.add_argument("--max-runtime-sec", type=_positive_float_arg, default=60.0)
+    parser.add_argument("--max-rss-mb", type=_positive_float_arg, default=2048.0)
     parser.add_argument("--no-ascii", action="store_true")
     args = parser.parse_args(argv)
 

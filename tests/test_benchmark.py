@@ -1,6 +1,8 @@
 import csv
 import json
 
+import pytest
+
 import braille_dotmatrix_engine.benchmark as benchmark_mod
 from braille_dotmatrix_engine.benchmark import (
     BENCHMARK_PROFILES,
@@ -23,10 +25,20 @@ def test_create_synthetic_image(tmp_path):
     assert path.endswith('synthetic.png')
 
 
+def test_create_synthetic_image_rejects_fractional_dimensions(tmp_path):
+    with pytest.raises(ValueError, match='width'):
+        create_synthetic_image(tmp_path / 'synthetic.png', width=64.5, height=48)
+
+
 def test_estimate_image_memory_mb():
     estimate = estimate_image_memory_mb(100, 50)
     assert estimate['input_image_mb'] >= 0
     assert estimate['estimated_working_set_mb'] >= estimate['input_image_mb']
+
+
+def test_estimate_image_memory_mb_rejects_fractional_dimensions():
+    with pytest.raises(ValueError, match='width'):
+        estimate_image_memory_mb(100.5, 50)
 
 
 def test_run_one_benchmark_returns_metrics(tmp_path):
@@ -65,6 +77,11 @@ def test_validate_benchmark_rows_detects_bad_values():
     assert issues
 
 
+def test_validate_benchmark_rows_rejects_non_finite_thresholds():
+    with pytest.raises(ValueError, match='max_runtime_sec'):
+        validate_benchmark_rows([], max_runtime_sec=float('nan'))
+
+
 def test_write_benchmark_csv_and_summary(tmp_path):
     rows = [{
         'name': 'unit',
@@ -86,6 +103,7 @@ def test_write_benchmark_csv_and_summary(tmp_path):
     summary = json.loads(open(summary_path, encoding='utf-8').read())
     assert summary['ok'] is True
     assert summary['render_schema_version'] == RENDER_SCHEMA_VERSION
+    assert summary['benchmark_schema_version'] == BENCHMARK_SCHEMA_VERSION
     assert summary['profiles'] == ['unit']
     assert summary['total_artifact_bytes'] == 42
 
@@ -93,6 +111,12 @@ def test_write_benchmark_csv_and_summary(tmp_path):
 def test_rss_fallback_without_resource(monkeypatch):
     monkeypatch.setattr(benchmark_mod, 'resource', None)
     assert benchmark_mod._rss_mb() == 0.0
+
+
+def test_benchmark_module_main_rejects_non_finite_limits(tmp_path):
+    with pytest.raises(SystemExit) as exc:
+        main(['--output-dir', str(tmp_path), '--max-runtime-sec', 'nan'])
+    assert exc.value.code == 2
 
 
 def test_benchmark_module_main_writes_artifacts(tmp_path):

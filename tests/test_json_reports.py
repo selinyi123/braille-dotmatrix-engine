@@ -14,6 +14,12 @@ def test_dumps_json_replaces_non_finite_floats_with_null():
     assert json.loads(text) == {'nan': None, 'inf': None, 'nested': [None]}
 
 
+def test_dumps_json_serializes_sets_deterministically():
+    payload = {'items': set(['b', 'a', 'c'])}
+    text = dumps_json(payload)
+    assert json.loads(text) == {'items': ['a', 'b', 'c']}
+
+
 def test_render_report_is_strict_json_for_constant_image(tmp_path):
     image = tmp_path / 'constant.png'
     cv2.imwrite(str(image), np.zeros((64, 64, 3), dtype=np.uint8))
@@ -33,3 +39,16 @@ def test_render_report_is_strict_json_for_constant_image(tmp_path):
     parsed = json.loads(text)
     json.dumps(parsed, allow_nan=False)
     assert parsed['artifact_manifest']['report_json']['exists'] is True
+
+
+def test_pipeline_accepts_grayscale_image_via_preprocess(tmp_path):
+    image = tmp_path / 'gray.png'
+    cv2.imwrite(str(image), np.zeros((32, 32), dtype=np.uint8))
+    report = process_image(
+        image,
+        BrailleArtConfig(output_width_cells=4, mode='TACTILE'),
+        tmp_path / 'out.png',
+        tmp_path / 'out.txt',
+        tmp_path / 'report.json',
+    )
+    assert report['image_shape'] == [32, 32]

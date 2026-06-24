@@ -23,22 +23,24 @@ This repository is currently in the **V1 engineering prototype** stage:
 - compact BRF report summary and validation-only CLI mode
 - text-only BRF preflight mode for existing Unicode Braille TXT files
 - batch BRF preflight for fixture and artifact directories
+- optional recursive BRF batch directory scans
 - checked-in BRF example fixtures for valid, warning, and error cases
 - JSON contract fixtures for BRF report regression tests
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
-- centralized render/benchmark schema constants
+- centralized render, BRF, and benchmark schema constants
 - centralized configuration validation before rendering
+- shared runtime direct-API validation helpers
 - tactile output validation for spacing, active-dot collisions, and occupancy
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.23.0 BRF JSON contract notes
+### v1.23.x schema notes
 
-- Added `examples/brf/snapshots/*.json` contract files.
-- Covered valid six-dot, eight-dot error, non-Braille warning, and batch aggregate reports.
-- Added tests that compare normalized runtime reports with the checked-in JSON contracts.
-- Kept render schema at `1.11` because the top-level report schema is unchanged.
+- Render report schema remains `1.11`.
+- BRF-specific reports use `brf_schema_version`.
+- Benchmark reports use their own benchmark schema version.
+- Package version, render schema, BRF schema, and benchmark schema are intentionally independent.
 
 ## Install
 
@@ -51,20 +53,19 @@ pip install -e ".[dev]"
 Validate one existing Unicode Braille text file:
 
 ```bash
-braille-dotmatrix \
-  --brf-preflight examples/brf/valid_six_dot.txt \
-  --brf-print-summary \
-  --report-json artifacts/brf_preflight_report.json
+braille-dotmatrix --brf-preflight examples/brf/valid_six_dot.txt --brf-print-summary --report-json artifacts/brf_preflight_report.json
 ```
 
-Validate a directory of Unicode Braille text files:
+Validate a directory of Unicode Braille text files. Directory scanning is non-recursive by default:
 
 ```bash
-braille-dotmatrix \
-  --brf-preflight-batch examples/brf \
-  --brf-batch-pattern "*.txt" \
-  --brf-print-summary \
-  --report-json artifacts/brf_batch_report.json
+braille-dotmatrix --brf-preflight-batch examples/brf --brf-batch-pattern "*.txt" --brf-print-summary --report-json artifacts/brf_batch_report.json
+```
+
+Recursively scan a directory:
+
+```bash
+braille-dotmatrix --brf-preflight-batch examples/brf --brf-batch-recursive --brf-batch-pattern "*.txt" --report-json artifacts/brf_batch_recursive_report.json
 ```
 
 Run smoke benchmarks:
@@ -111,13 +112,15 @@ These files intentionally store only stable report fields used for regression te
 
 ## Version and schema policy
 
-Package version, render schema version, and benchmark schema version are intentionally independent. `v1.23.0` keeps render schema at `1.11`.
+Package version, render schema version, BRF schema version, and benchmark schema version are intentionally independent. A package release may include internal hardening without changing the render schema, while BRF or benchmark reports may evolve independently.
 
 ## Tests
 
 ```bash
 pytest -q
 ```
+
+CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, and benchmark smoke.
 
 ## License
 
