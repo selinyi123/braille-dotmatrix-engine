@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.24.0`
+`v1.24.1`
 
 ## Status
 
@@ -26,6 +26,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - optional recursive BRF batch directory scans
 - checked-in BRF example fixtures for valid, warning, and error cases
 - JSON contract fixtures for BRF report regression tests
+- BRF batch CI report artifact upload
 - benchmark profiles for smoke, medium, and stress image sizes
 - ASCII charset presets, ASCII PNG previews, and optional HTML export
 - centralized render, BRF, and benchmark schema constants
@@ -42,6 +43,12 @@ This repository is currently in the **V1 engineering prototype** stage:
 - BRF-specific reports use `brf_schema_version`.
 - Benchmark reports use their own benchmark schema version.
 - Package version, render schema, BRF schema, and benchmark schema are intentionally independent.
+
+### v1.24.1 CI artifact notes
+
+- CI now generates `artifacts/brf/brf_batch_report.json` from `examples/brf/`.
+- CI validates the batch aggregate before uploading the report.
+- CI uploads the report as the `brf-batch-report` artifact with `retention-days: 7`.
 
 ## Install
 
@@ -121,7 +128,7 @@ Package version, render schema version, BRF schema version, and benchmark schema
 pytest -q
 ```
 
-CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, and benchmark smoke.
+CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, BRF batch report artifact generation, and benchmark smoke.
 
 ## License
 

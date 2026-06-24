@@ -45,6 +45,46 @@ jobs:
           name: pytest-${{ matrix.python-version }}
           path: pytest-${{ matrix.python-version }}.xml
 
+  brf-batch-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -U pip
+      - run: pip install -e ".[dev]"
+      - name: Generate BRF batch report
+        run: |
+          mkdir -p artifacts/brf
+          braille-dotmatrix \
+            --brf-preflight-batch examples/brf \
+            --brf-batch-pattern "*.txt" \
+            --brf-print-summary \
+            --report-json artifacts/brf/brf_batch_report.json
+      - name: Validate BRF batch report aggregate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('artifacts/brf/brf_batch_report.json').read_text(encoding='utf-8'))
+          aggregate = report['batch']['aggregate']
+          assert report['mode'] == 'BRF_PREFLIGHT_BATCH'
+          assert aggregate['total_files'] == 3
+          assert aggregate['ok_files'] == 1
+          assert aggregate['warning_count'] == 1
+          assert aggregate['error_count'] == 1
+          assert aggregate['issue_files'] == 2
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brf-batch-report
+          path: artifacts/brf/brf_batch_report.json
+          if-no-files-found: error
+          retention-days: 7
+
   benchmark-smoke:
     runs-on: ubuntu-latest
     steps:
