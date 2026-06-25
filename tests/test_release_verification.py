@@ -3,8 +3,9 @@ import json
 from braille_dotmatrix_engine.release_verification import build_release_verification_checklist, main, write_release_verification_checklist
 
 
-def _plan():
+def _plan(artifact_dir='artifacts/release'):
     return {
+        'artifact_dir': artifact_dir,
         'subjects': [
             {'path': 'package.whl', 'sha256': 'a' * 64, 'size_bytes': 10},
             {'path': 'brf_batch_report.json', 'sha256': 'b' * 64, 'size_bytes': 20},
@@ -23,6 +24,21 @@ def test_build_release_verification_checklist():
     assert checklist['checks'][0]['command'] == 'gh attestation verify artifacts/release/package.whl -R selinyi123/braille-dotmatrix-engine'
     assert checklist['manual_checklist']
     assert 'Offline verification' in checklist['offline_verification_note']
+
+
+def test_build_release_verification_checklist_uses_plan_artifact_dir():
+    checklist = build_release_verification_checklist(_plan('dist/release'), repository='selinyi123/braille-dotmatrix-engine')
+
+    assert checklist['artifact_prefix'] == 'dist/release'
+    assert checklist['checks'][0]['artifact_path'] == 'dist/release/package.whl'
+    assert checklist['checks'][0]['command'] == 'gh attestation verify dist/release/package.whl -R selinyi123/braille-dotmatrix-engine'
+
+
+def test_build_release_verification_checklist_allows_prefix_override():
+    checklist = build_release_verification_checklist(_plan('dist/release'), repository='selinyi123/braille-dotmatrix-engine', artifact_prefix='downloaded/release')
+
+    assert checklist['artifact_prefix'] == 'downloaded/release'
+    assert checklist['checks'][0]['artifact_path'] == 'downloaded/release/package.whl'
 
 
 def test_write_release_verification_checklist(tmp_path):
