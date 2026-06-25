@@ -6,7 +6,7 @@ The project converts images into a physical 2x4 dot lattice and multiple text/vi
 
 ## Current version
 
-`v1.30.0`
+`v1.31.0`
 
 ## Status
 
@@ -32,6 +32,7 @@ This repository is currently in the **V1 engineering prototype** stage:
 - intentional contract migration review records with required reasons
 - release-only artifact attestation boundary for wheel, sdist, and BRF release artifacts
 - release attestation plan JSON with subject hashes and sizes
+- release verification checklist JSON with `gh attestation verify` commands
 - SHA-256 artifact provenance manifest generation
 - BRF batch CI report artifact upload with provenance manifest
 - benchmark profiles for smoke, medium, and stress image sizes
@@ -44,15 +45,15 @@ This repository is currently in the **V1 engineering prototype** stage:
 - deterministic seed path for density correction
 - CI test scaffold
 
-### v1.30.0 release attestation notes
+### v1.31.0 release verification notes
 
-- Added `.github/workflows/release-attestations.yml`.
-- Added `braille_dotmatrix_engine.release_attestation`.
-- Added `build_release_attestation_plan()` and `write_release_attestation_plan()`.
-- Added `python -m braille_dotmatrix_engine.release_attestation` CLI entry point.
-- Release attestations run only on `v*` tags or manual workflow dispatch.
-- PR CI does not receive `id-token: write` or `attestations: write` from this workflow.
-- The release workflow builds wheel and sdist, generates BRF release artifacts, writes local provenance, writes an attestation plan, then runs `actions/attest@v4`.
+- Added `braille_dotmatrix_engine.release_verification`.
+- Added `build_release_verification_checklist()` and `write_release_verification_checklist()`.
+- Added `python -m braille_dotmatrix_engine.release_verification` CLI entry point.
+- Release workflow now writes `release_verification_checklist.json` from `release_attestation_plan.json`.
+- The checklist records one `gh attestation verify ... -R owner/repo` command per release subject.
+- The checklist also records online/offline verification notes and manual release checks.
+- `release_verification_checklist.json` is included in the attested release subject list.
 
 ## Install
 
@@ -108,6 +109,21 @@ Create a release attestation plan for built release artifacts:
 python -m braille_dotmatrix_engine.release_attestation artifacts/release --output artifacts/release/release_attestation_plan.json
 ```
 
+Create a release verification checklist from an attestation plan:
+
+```bash
+python -m braille_dotmatrix_engine.release_verification \
+  artifacts/release/release_attestation_plan.json \
+  --output artifacts/release/release_verification_checklist.json \
+  --repository selinyi123/braille-dotmatrix-engine
+```
+
+Verify an attested release artifact online:
+
+```bash
+gh attestation verify artifacts/release/<artifact> -R selinyi123/braille-dotmatrix-engine
+```
+
 Generate a SHA-256 artifact provenance manifest:
 
 ```bash
@@ -128,6 +144,7 @@ import json
 from braille_dotmatrix_engine.brf_contract import write_batch_contract_from_report
 from braille_dotmatrix_engine.contract_migration import propose_contract_migration
 from braille_dotmatrix_engine.release_attestation import build_release_attestation_plan
+from braille_dotmatrix_engine.release_verification import build_release_verification_checklist
 from braille_dotmatrix_engine.report_diff import diff_reports
 from braille_dotmatrix_engine.report_diff_policy import evaluate_report_diff_policy
 
@@ -136,7 +153,8 @@ expected = json.loads(Path("examples/brf/snapshots/batch_examples.json").read_te
 diff = diff_reports(expected, contract)
 print(evaluate_report_diff_policy(diff)["status"])
 print(propose_contract_migration(expected, contract, reason="intentional update")["status"])
-print(build_release_attestation_plan("artifacts/release")["subject_count"])
+plan = build_release_attestation_plan("artifacts/release")
+print(build_release_verification_checklist(plan, repository="selinyi123/braille-dotmatrix-engine")["subject_count"])
 ```
 
 ## JSON contracts
@@ -171,7 +189,7 @@ Package version, render schema version, BRF schema version, and benchmark schema
 pytest -q
 ```
 
-CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, BRF batch report artifact generation, BRF contract normalization, report diff generation, drift policy evaluation, BRF provenance manifest generation, blocking drift enforcement, and benchmark smoke. Release attestations run only in the separate release workflow.
+CI additionally runs the configured Ruff correctness gate, package build, wheel install smoke, pytest matrix, BRF batch report artifact generation, BRF contract normalization, report diff generation, drift policy evaluation, BRF provenance manifest generation, blocking drift enforcement, and benchmark smoke. Release attestations and release verification checklist generation run only in the separate release workflow.
 
 ## License
 

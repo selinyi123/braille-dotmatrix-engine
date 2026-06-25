@@ -28,3 +28,11 @@ def test_release_attestation_workflow_attests_expected_subjects():
     assert 'artifacts/release/*.whl' in content
     assert 'artifacts/release/*.tar.gz' in content
     assert 'artifacts/release/release_attestation_plan.json' in content
+    assert 'artifacts/release/release_verification_checklist.json' in content
+
+
+def test_release_attestation_workflow_generates_verification_checklist():
+    content = WORKFLOW.read_text(encoding='utf-8')
+    assert 'Generate release verification checklist' in content
+    assert 'python -m braille_dotmatrix_engine.release_verification' in content
+    assert '--repository selinyi123/braille-dotmatrix-engine' in content

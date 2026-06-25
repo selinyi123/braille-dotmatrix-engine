@@ -63,6 +63,12 @@ jobs:
           python -m braille_dotmatrix_engine.release_attestation \
             artifacts/release \
             --output artifacts/release/release_attestation_plan.json
+      - name: Generate release verification checklist
+        run: |
+          python -m braille_dotmatrix_engine.release_verification \
+            artifacts/release/release_attestation_plan.json \
+            --output artifacts/release/release_verification_checklist.json \
+            --repository selinyi123/braille-dotmatrix-engine
       - name: Generate GitHub artifact attestation
         uses: actions/attest@v4
         with:
@@ -75,6 +81,7 @@ jobs:
             artifacts/release/drift_policy.json
             artifacts/release/provenance_manifest.json
             artifacts/release/release_attestation_plan.json
+            artifacts/release/release_verification_checklist.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
