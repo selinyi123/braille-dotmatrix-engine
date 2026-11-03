@@ -913,7 +913,7 @@ function drawRobot(ctx, P, V, opt = {}) {
     if (k === 'sapling') { if (opt.noSapling) continue; drawSapling(ctx, S.torso, opt.sapSway || 0); continue; }
     const p = PARTOF(k), m = S[k]; const st = {};
     if (!p.lbb) p.lbb = polyBounds(sampleSH(p.o, true, .8));
-    { const b = p.lbb, pad = 4; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [lx, ly] of [[b[0] - pad, b[1] - pad], [b[2] + pad, b[1] - pad], [b[0] - pad, b[3] + pad], [b[2] + pad, b[3] + pad]]) { const q = mAp(m, lx, ly); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); } if (x1 < -cullM || y1 < -cullM || x0 > W + cullM || y0 > H + cullM) continue; }
+    { const b = p.lbb, pad = 4; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [lx, ly] of [[b[0] - pad, b[1] - pad], [b[2] + pad, b[1] - pad], [b[0] - pad, b[3] + pad], [b[2] + pad, b[3] + pad]]) { const q = mAp(m, lx, ly); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); } if (x1 < -cullM || y1 < -cullM || x0 > (opt.cw || W) + cullM || y0 > (opt.ch || H) + cullM) continue; }
     if (pre[k]) st.out = pre[k];
     if (k === 'torso') { st.casters = [cast('head', 3.2), cast('paulF', 2.4)]; st.inside = (c, mm, pp, l) => drawPorthole(c, mm, pp, l, glowC, 0); }
     else if (k === 'head') { st.casters = [cast('brow', 1.25, 'armorDeep')]; st.inside = (c, mm, pp, l) => drawEyes(c, mm, pp, l, glowE, opt.look); }
@@ -1454,9 +1454,20 @@ function plateLow() {
     for (let x = -80; x < LW + 80;) { const w = Rr(120, 420); if (R() < .7) paintMass(g, bushOutline(x, x + w, row.gy + 8, 6, Rr(25, 70) * (1.4 - row.f), Rr(30, 90)), bushR, { mode: 'back', leaf: 6 - row.f * 2, lx: .8 }); x += w * Rr(.8, 1.4); }
     const xs = []; for (let i = 0; i < row.n; i++) xs.push(Rr(-80, LW + 80)); xs.sort((a, b) => a - b);
     for (const x of xs) { if (ri === 2 && x > 560 && x < 1440) continue; const w0 = Rr(row.w[0], row.w[1]); const lean = (x - LW / 2) / LW * -.05; paintTrunk2(g, x, row.gy + Rr(0, 10), 1900, w0, w0 * .55, { base: '#4a5853', dark: '#323e3c', light: '#7f8676', rim: '#ffe7b0', fog: FOG, f: row.f, lean, seed: (x * 3 | 0) + ri, side: x < 1080 ? 1 : -1, roots: 3, branches: ri === 2 ? 2 : 0, barkA: 110, rimW: .8 }); }
+    // lower boughs with leaves and hanging moss on some trunks, so the rows read as old living trees
+    const leafR = rampF(['#22382f', '#2f4a3c', '#466449', '#6f8a58', '#c9c48b', '#f3e4b2'], FOG, row.f * .92);
+    for (const x of xs) { if (ri === 2 && x > 560 && x < 1440) continue; if (R() < .6) continue; const by = row.gy - Rr(700, 1400); const dir = R() < .5 ? -1 : 1; const L = Rr(140, 260) * (1.2 - row.f * .5);
+      const pts = []; for (let k = 0; k <= 8; k++) { const u = k / 8; pts.push(x + dir * L * u, by - L * (.05 * u + .35 * u * u)); }
+      bstroke(g, pts, Rr(9, 14) * (1.2 - row.f * .5), 2, rampAt(leafR, .06, 3), 1);
+      for (let k = 3; k <= 8; k += 2) paintFoliage(g, pts[2 * k] + Rr(-10, 10), pts[2 * k + 1] - Rr(5, 25), L * Rr(.22, .34), L * Rr(.14, .2), leafR, { mode: 'back', leaf: 6 - row.f * 2, clumps: 2, lx: dir * -.6, ly: -.7 }); }
     mistBand(g, row.gy - 60, 220, FOG, .36 + row.f * .12, -100, LW + 100, .2);
     mistBand(g, row.gy + 4, 36, '#f6ebcf', .5, -100, LW + 100);
   });
+  // midground undergrowth on the clearing's edges: ferns and shrubs
+  { const fernM = rampF(['#1e3328', '#2a4532', '#3d5d3f', '#5b7b4c', '#8ea366'], FOG, .25);
+    for (let i = 0; i < 14; i++) { const x = R() < .5 ? Rr(260, 640) : Rr(1360, 1760); paintFern(g, x, gy + Rr(-6, 8), Rr(60, 120), fernM, { fronds: 7, lx: x < 1000 ? 1 : -1 }); }
+    paintMass(g, bushOutline(220, 700, gy + 6, 10, 70, 60), rampF(['#1e3328', '#2a4532', '#3d5d3f', '#5b7b4c', '#a9b277', '#e9dca6'], FOG, .3), { mode: 'back', leaf: 6, lx: .8 });
+    paintMass(g, bushOutline(1330, 1800, gy + 6, 10, 70, 60), rampF(['#1e3328', '#2a4532', '#3d5d3f', '#5b7b4c', '#a9b277', '#e9dca6'], FOG, .3), { mode: 'back', leaf: 6, lx: -.6 }); }
   // canopy ring around the gap: far ring then near ring
   const canFar = ramp(['#5f716a', '#6d7f74', '#859381', '#b2b496', '#f0dcad']);
   const ring = (cx, cy, rx, ry, n, jit) => { const pts = []; for (let i = 0; i <= n; i++) { const a = i / n * TAU; const j = 1 + (noise2(Math.cos(a) * 2 + 9, Math.sin(a) * 2) * jit); pts.push(cx + Math.cos(a) * rx * j, cy + Math.sin(a) * ry * j); } return pts; };
@@ -1512,9 +1523,14 @@ function plateCanopy() {
   for (const [x0, y0, w0] of spokes) {
     const dx = cx - x0, dy = cy - y0, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, px = -uy, py = ux, end = .72;
     const sd = (x0 < cx ? 1 : -1);
-    for (let j = 0; j < 2; j++) { g.fillStyle = j ? '#2c3532' : '#1c2523'; g.beginPath(); const ww = j ? .5 : 1; g.moveTo(x0 + px * w0 * (j ? sd * .1 : 1), y0 + py * w0 * (j ? sd * .1 : 1)); g.lineTo(x0 + ux * L * end + px * w0 * .1 * (j ? sd : 1), y0 + uy * L * end + py * w0 * .1 * (j ? sd : 1)); g.lineTo(x0 + ux * L * end - px * w0 * .1, y0 + uy * L * end - py * w0 * .1); g.lineTo(x0 - px * w0, y0 - py * w0); g.closePath(); g.fill(); }
+    { const mx = x0 + ux * L * .2, my = y0 + uy * L * .2, gw = w0 * .8; const gr = g.createLinearGradient(mx - px * gw * sd, my - py * gw * sd, mx + px * gw * sd, my + py * gw * sd);
+      gr.addColorStop(0, '#5e5644'); gr.addColorStop(.12, '#3a3a33'); gr.addColorStop(.45, '#232c29'); gr.addColorStop(.85, '#161e1c'); gr.addColorStop(1, '#101614');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x0 + px * w0, y0 + py * w0); g.quadraticCurveTo(x0 + ux * L * end * .6 + px * w0 * .42, y0 + uy * L * end * .6 + py * w0 * .42, x0 + ux * L * end + px * w0 * .04, y0 + uy * L * end + py * w0 * .04); g.lineTo(x0 + ux * L * end - px * w0 * .04, y0 + uy * L * end - py * w0 * .04); g.quadraticCurveTo(x0 + ux * L * end * .6 - px * w0 * .42, y0 + uy * L * end * .6 - py * w0 * .42, x0 - px * w0, y0 - py * w0); g.closePath(); g.fill(); }
     for (let i = 0; i < 220; i++) { const t = R() * end, u = R() * 2 - 1, w = lerp(w0, w0 * .1, t / end); const bx = x0 + ux * L * t + px * u * w * .9, by = y0 + uy * L * t + py * u * w * .9, l = Rr(8, 36) * (1 - t * .8); bstroke(g, [bx - ux * l, by - uy * l, bx + ux * l, by + uy * l], Rr(1.2, 3.5) * (1 - t * .7), .4, (u * sd < -.5) ? '#8a7a5c' : pick(['#1b2422', '#28322f', '#36403a']), Rr(.5, .9)); }
-    const rx = -sd; bstroke(g, [x0 + px * w0 * .95 * rx, y0 + py * w0 * .95 * rx, x0 + ux * L * end + px * w0 * .1 * rx, y0 + uy * L * end + py * w0 * .1 * rx], 5, 1, '#e9c98e', .75);
+    const rx = -sd; bstroke(g, [x0 + px * w0 * .95 * rx, y0 + py * w0 * .95 * rx, x0 + ux * L * end * .6 + px * w0 * .4 * rx, y0 + uy * L * end * .6 + py * w0 * .4 * rx, x0 + ux * L * end + px * w0 * .05 * rx, y0 + uy * L * end + py * w0 * .05 * rx], 5, 1, '#e9c98e', .75);
+    // the crown this trunk holds up, seated over its tip
+    const tipR = ramp(['#233a2c', '#2f4d34', '#45693e', '#6f9049', '#b9c46a', '#f3e9a8']); const tx = x0 + ux * L * end, ty = y0 + uy * L * end;
+    for (let k = 0; k < 3; k++) paintFoliage(g, tx - ux * k * 60 + px * Rr(-60, 60), ty - uy * k * 60 + py * Rr(-60, 60), Rr(110, 170), Rr(80, 120), tipR, { mode: 'back', leaf: 8, clumps: 4, lx: ux, ly: uy });
   }
   // crowns of these trunks (mid), then near dark leaves at the frame edge
   const mid = ramp(['#233a2c', '#2f4d34', '#45693e', '#6f9049', '#b9c46a', '#f3e9a8']);
@@ -1635,7 +1651,7 @@ function billow(ctx, puffs, cols, lightDir = LIGHT) {
   // puffs: [x,y,r] screen
   const [cSh, cMid, cHi] = cols;
   ctx.fillStyle = cSh; ctx.beginPath(); for (const p of puffs) { ctx.moveTo(p[0] + p[2], p[1]); ctx.arc(p[0], p[1], p[2], 0, TAU); } ctx.fill();
-  ctx.fillStyle = cMid; ctx.beginPath(); for (const p of puffs) { const r = p[2] * .82; ctx.moveTo(p[0] + lightDir[0] * p[2] * .2 + r, p[1] + lightDir[1] * p[2] * .2); ctx.arc(p[0] + lightDir[0] * p[2] * .2, p[1] + lightDir[1] * p[2] * .2, r, 0, TAU); } ctx.fill();
+  ctx.fillStyle = cMid; ctx.beginPath(); for (const p of puffs) { const r = p[2] * .74; ctx.moveTo(p[0] + lightDir[0] * p[2] * .27 + r, p[1] + lightDir[1] * p[2] * .27); ctx.arc(p[0] + lightDir[0] * p[2] * .27, p[1] + lightDir[1] * p[2] * .27, r, 0, TAU); } ctx.fill();
   if (cHi) { ctx.fillStyle = cHi; ctx.beginPath(); for (const p of puffs) { const r = p[2] * .5; ctx.moveTo(p[0] + lightDir[0] * p[2] * .45 + r, p[1] + lightDir[1] * p[2] * .45); ctx.arc(p[0] + lightDir[0] * p[2] * .45, p[1] + lightDir[1] * p[2] * .45, r, 0, TAU); } ctx.fill(); }
 }
 // falling leaf (flutter: width changes as it turns)
@@ -1712,7 +1728,7 @@ function clouds(ctx, M, t, C, cols) {
   }
 }
 function camShake(t, amp, seed = 1) { const tq = onTwos(t); return { sx: amp * noise2(tq * 9.1, seed * 3.7), sy: amp * noise2(tq * 8.3, seed * 9.1 + 4) }; }
-function fadeBlack(a) { if (a <= 0) return; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = clamp(a, 0, 1); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+function fadeBlack(a, col = '#000') { if (a <= 0) return; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = clamp(a, 0, 1); ctx.fillStyle = col; ctx.fillRect(0, 0, W, H); ctx.restore(); }
 function flash(a, col = '255,246,220') { if (a <= 0) return; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(${col},${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, W, H); ctx.restore(); }
 function post(f, o = {}) { diffusion(ctx, o.diff ?? .16, o.warm ?? 1); vignette(ctx, o.vig ?? .3); grain(ctx, f, o.grain ?? .05); }
 function screenOp(op, a, fn) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = op; ctx.globalAlpha = a; fn(); ctx.restore(); }
@@ -1749,8 +1765,8 @@ function plume(ctx, x, y, ang, len, wid, f, pow) {
     for (let i = 1; i <= n; i++) { const u = i / n, w = Wd * .5 * prof(u) * (1 + (hashf(f >> 1, i, lk * 100 | 0) - .5) * jit); ctx.lineTo(x + c * L * u - s * w, y + s * L * u + c * w); }
     for (let i = n; i >= 1; i--) { const u = i / n, w = Wd * .5 * prof(u) * (1 + (hashf(f >> 1, i + 50, lk * 100 | 0) - .5) * jit); ctx.lineTo(x + c * L * u + s * w, y + s * L * u - c * w); }
     ctx.lineTo(x + s * Wd * .3, y - c * Wd * .3); ctx.closePath(); ctx.fill(); };
-  ctx.save(); layer(1, 1.25, '#ff9a46', .45, .85 * pow); layer(.82, .95, '#ffc766', .35, .95 * pow); layer(.6, .62, '#fff0c4', .25, 1); layer(.38, .3, '#ffffff', .15, 1); ctx.restore();
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 4; k++) { const u = k / 3; glowSprite(ctx, x + c * len * u * .8, y + s * len * u * .8, wid * (2.2 + u * 2), '255,190,110', .32 * pow * (1 - u * .5)); } glowSprite(ctx, x, y, wid * 1.6, '255,250,230', .7 * pow); ctx.restore();
+  const ca = clamp(pow * 2.5, 0, 1); ctx.save(); layer(1, 1.25, '#ff9a46', .45, .85 * pow); layer(.82, .95, '#ffc766', .35, .95 * pow); layer(.6, .62, '#fff0c4', .25, ca); layer(.38, .3, '#ffffff', .15, ca); ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 4; k++) { const u = k / 3; glowSprite(ctx, x + c * len * u * .8, y + s * len * u * .8, wid * (2.2 + u * 2), '255,190,110', .32 * pow * (1 - u * .5)); } glowSprite(ctx, x, y, wid * 1.6, '255,250,230', .7 * pow * ca); ctx.restore();
 }
 function shockRing(ctx, M, t, t0, x, y, r1, life) { const dt = t - t0; if (dt < 0 || dt > life) return; const u = dt / life, r = r1 * EASE.out3(u); const [sx, sy] = mAp(M, x, y); const sc = mScale(M); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,244,214,${.7 * (1 - u)})`; ctx.lineWidth = (14 - 10 * u) * sc; ctx.beginPath(); ctx.ellipse(sx, sy, r * sc, r * .16 * sc, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
 function eyeGlow(ctx, o, a, k = 1) { if (a <= .01) return; ctx.save(); ctx.globalCompositeOperation = 'lighter'; const r = o.ppu * 3.2 * k; for (const e of o.eyes) { glowSprite(ctx, e[0], e[1], r, '150,255,240', .55 * a); glowSprite(ctx, e[0], e[1], r * .35, '235,255,250', .8 * a); } ctx.restore(); }
@@ -1760,7 +1776,23 @@ function spill(cel, x, y, r, a, col = '110,235,225') { if (a <= .01) return; con
 function clearCel(c) { const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, W, H); return g; }
 function maskLinear(cel, x0, y0, x1, y1) { const g = cel.getContext('2d'); g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); g.restore(); }
 function blit(c, a = 1, op = 'source-over') { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.globalCompositeOperation = op; ctx.drawImage(c, 0, 0); ctx.restore(); }
-function robot(g, P, V, o = {}) { RC.rim = o.rim ?? 1; RC.sway = o.swayFn || null; const r = drawRobot(g, P, V, { pal: palMix(o.sunT ?? 0, o.haze, o.dim ?? 1), seed: o.seed ?? 1, sunT: o.sunT ?? 0, eye: o.eye || 0, core: o.core || 0, look: o.look || 0, strandSway: o.sway || 0, sapSway: o.sap || 0 }); RC.sway = null; return r; }
+function robot(g, P, V, o = {}) { RC.rim = o.rim ?? 1; RC.sway = o.swayFn || null; const r = drawRobot(g, P, V, { pal: palMix(o.sunT ?? 0, o.haze, o.dim ?? 1), seed: o.seed ?? 1, sunT: o.sunT ?? 0, eye: o.eye || 0, core: o.core || 0, look: o.look || 0, strandSway: o.sway || 0, sapSway: o.sap || 0, cw: o.cw, ch: o.ch }); RC.sway = null; return r; }
+/* held cels photographed under a moving camera: render each drawing once, re-composite with the camera delta */
+const CELC = { map: new Map(), order: [] };
+const PADC = () => Math.round(W * .09);
+function cel(key, P, V, o = {}, refV = null) {
+  let e = CELC.map.get(key);
+  if (!e) {
+    const pad = PADC(), R0 = refV || V; const c = mkCanvas(W + 2 * pad, H + 2 * pad); const g = c.getContext('2d');
+    const out = robot(g, P, mMul(mT(pad, pad), R0), Object.assign({}, o, { cw: W + 2 * pad, ch: H + 2 * pad }));
+    e = { c, Vref: R0, pad, out }; CELC.map.set(key, e); CELC.order.push(key); while (CELC.order.length > 8) CELC.map.delete(CELC.order.shift());
+  }
+  const D = mMul(V, mInv(e.Vref)), pd = e.pad; const ptf = q => { const p = mAp(D, q[0] - pd, q[1] - pd); return p; };
+  const back = mMul(D, mT(-pd, -pd)); const S = {}; for (const k in e.out.S) S[k] = mMul(back, e.out.S[k]);
+  const out = { eyes: e.out.eyes.map(ptf), core: ptf(e.out.core), engines: e.out.engines.map(ptf), ppu: e.out.ppu * mScale(D), S, M: e.out.M };
+  return { draw: (g = ctx) => { g.save(); g.setTransform(back[0], back[1], back[2], back[3], back[4], back[5]); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(e.c, 0, 0); g.restore(); }, out };
+}
+function clearCels() { CELC.map.clear(); CELC.order.length = 0; }
 // procedural foreground grass that the gale can bend
 function galeGrass(ctx, M, t, x0, x1, yb, n, wind, seed = 3, cols = ['#14231b', '#1d3124', '#2b4630']) {
   const sc = mScale(M); ctx.save();
@@ -1824,7 +1856,7 @@ function buildCuts() {
     const P = PL.wide, e = EASE.io(t / 7); const cam = { x: lerp(1100, 1068, e), y: lerp(600, 616, e), z: lerp(1.0, 1.06, e) };
     const M = camM(cam); drawPlate(ctx, P.bg, M);
     const V = vRoot(M, 'wide'); groundShadow(ctx, V, KNEEL);
-    robot(ctx, KNEEL, V, { sunT: 0, haze: ['#b9bba6', .16], dim: .8, rim: 1.1, seed: 7 });
+    cel('c1', KNEEL, V, { sunT: 0, haze: ['#b9bba6', .16], dim: .8, rim: 1.1, seed: 7 }, vRoot(camM({ x: 1068, y: 616, z: 1.06 }), 'wide')).draw();
     screenOp('screen', .42 + .08 * e, () => drawPlate(ctx, P.rays, M));
     motes(ctx, M, onTwos(t), [700, 200, 1700, 900], 70, 1, .9);
     leaves(ctx, M, onTwos(t), leaves1);
@@ -1849,7 +1881,7 @@ function buildCuts() {
     const P = PL.soft; const M = camM({ x: 1150 + t * 4, y: 560, z: 1.0 }); drawPlate(ctx, P.bg, M);
     screenOp('screen', .5, () => drawPlate(ctx, P.rays, M));
     const V = vClose(pauldTop, 900, 470, 50, pauldRot); const tq = onTwos(t);
-    robot(ctx, KNEEL, V, { sunT: .15, haze: ['#cfcab0', .06], dim: .9, rim: 1.2, seed: 21, swayFn: swayAt(tq, BIRD_LAND[0], BIRD_LAND[1]) });
+    const swaying = tq > 1.6 && tq < 3.3; cel('c2' + (swaying ? ':' + Math.round(tq * 12) : ''), KNEEL, V, { sunT: .15, haze: ['#cfcab0', .06], dim: .9, rim: 1.2, seed: 21, swayFn: swaying ? swayAt(tq, BIRD_LAND[0], BIRD_LAND[1]) : null }).draw();
     const b = birdKeys(t < 1.45 ? t : tq); RC.seed = Math.floor(tq * 12); drawBird(ctx, birdM(b), b.pose);
     motes(ctx, M, tq, [900, 0, 2200, 900], 50, 2, 1.1);
     post(f, { diff: .18, vig: .3 });
@@ -1860,8 +1892,8 @@ function buildCuts() {
     const u = EASE.io(clamp((t - .9) / 3.8, 0, 1)); const xe = lerp(2300, -400, u) * SC;
     screenOp('screen', .35 + .35 * u, () => drawPlate(ctx, P.rays, M));
     const V = vClose(headC, 1010, 560, 36, -.5);
-    const g1 = clearCel(CEL1); robot(g1, KNEEL, V, { sunT: .05, haze: ['#cfcab0', .04], dim: .86, rim: .9, seed: 31 });
-    const g2 = clearCel(CEL2); robot(g2, KNEEL, V, { sunT: 1, haze: ['#ffe2a8', .05], dim: 1.02, rim: 1.5, seed: 31 });
+    const g1 = clearCel(CEL1); cel('c3a', KNEEL, V, { sunT: .05, haze: ['#cfcab0', .04], dim: .86, rim: .9, seed: 31 }).draw(g1);
+    const g2 = clearCel(CEL2); cel('c3b', KNEEL, V, { sunT: 1, haze: ['#ffe2a8', .05], dim: 1.02, rim: 1.5, seed: 31 }).draw(g2);
     maskLinear(CEL2, xe - 120 * SC, 0, xe + 160 * SC, -260 * SC);
     blit(CEL1); blit(CEL2);
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); beam(ctx, xe + 200 * SC, 300 * SC, 2.0, 260 * SC, 2600 * SC, .26 * Math.sin(u * Math.PI) + .1 * u); ctx.restore();
@@ -1875,8 +1907,9 @@ function buildCuts() {
     screenOp('screen', .5, () => drawPlate(ctx, P.rays, M));
     const tq = onTwos(t); const c = coreK(t < 1.95 ? t : tq);
     const V = vClose(coreC, 960, 540, 46, -.42);
-    const g1 = clearCel(CEL1); const o = robot(g1, KNEEL, V, { sunT: .2, haze: ['#cfcab0', .03], dim: .82, rim: .8, seed: 41, core: c });
-    const g2 = clearCel(CEL2); robot(g2, KNEEL, V, { sunT: 1, dim: 1, rim: 1.4, seed: 41, core: c });
+    const g1 = clearCel(CEL1); const ca = cel('c4a', KNEEL, V, { sunT: .2, haze: ['#cfcab0', .03], dim: .82, rim: .8, seed: 41 }); ca.draw(g1); const o = ca.out;
+    const g2 = clearCel(CEL2); cel('c4b', KNEEL, V, { sunT: 1, dim: 1, rim: 1.4, seed: 41 }).draw(g2);
+    if (c > .005) { const Mt = o.S.torso, pp = mScale(Mt); RC.seed = 41; RC.pal = palMix(.2, ['#cfcab0', .03], .82); drawPorthole(g1, Mt, pp, lodOf(pp), c, 0); RC.pal = palMix(1); drawPorthole(g2, Mt, pp, lodOf(pp), c, 0); }
     maskLinear(CEL2, 700 * SC, 900 * SC, 1250 * SC, 250 * SC);
     spill(CEL1, o.core[0], o.core[1], o.ppu * 22, c * .55); spill(CEL2, o.core[0], o.core[1], o.ppu * 22, c * .45);
     blit(CEL1); blit(CEL2); coreGlow(ctx, o, c, 1);
@@ -1892,7 +1925,8 @@ function buildCuts() {
     const pose = K(KNEEL, { head: .55 - lift * .1, tor: .4 - lift * .02 });
     const ev = eyeK(t < 1.1 ? t : onTwos(t));
     const V = vClose(headC, 1010, 560 - lift * 10, 36, -.5);
-    const g1 = clearCel(CEL1); const o = robot(g1, pose, V, { sunT: 1, haze: ['#ffe2a8', .04], dim: 1, rim: 1.5, seed: lift > .01 ? 51 + Math.floor(tq * 8) : 51, eye: ev, core: .6 });
+    const g1 = clearCel(CEL1); const cc = cel('c5:' + Math.round(lift * 100), pose, V, { sunT: 1, haze: ['#ffe2a8', .04], dim: 1, rim: 1.5, seed: lift > .01 ? 51 + Math.floor(tq * 8) : 51, core: .6 }); cc.draw(g1); const o = cc.out;
+    if (ev > .005) { const Mh = o.S.head, pp = mScale(Mh); RC.seed = 51; RC.pal = palMix(1, ['#ffe2a8', .04], 1); drawEyes(g1, Mh, pp, lodOf(pp), ev, 0); }
     for (const e of o.eyes) spill(CEL1, e[0], e[1], o.ppu * 6, ev * .5);
     blit(CEL1); eyeGlow(ctx, o, ev, 1.2);
     motes(ctx, M, onTwos(t), [700, 100, 2200, 1000], 60, 5, 1);
@@ -1902,8 +1936,8 @@ function buildCuts() {
   addCut('startle', 1.9, (t, f) => {
     const P = PL.soft; const sh = camShake(t, 4 * clamp(t / .6, 0, 1), 2); const M = camM({ x: 1174, y: 560, z: 1.0, sx: sh.sx, sy: sh.sy }); drawPlate(ctx, P.bg, M);
     screenOp('screen', .55, () => drawPlate(ctx, P.rays, M));
-    const V = mMul(mT(sh.sx * SC, sh.sy * SC), vClose(pauldTop, 900, 470, 50, pauldRot)); const tq = onTwos(t);
-    robot(ctx, KNEEL, V, { sunT: .9, haze: ['#ffe2a8', .04], dim: 1, rim: 1.3, seed: 61 + (Math.floor(tq * 12) % 3), swayFn: (x, y) => Math.sin(tq * 30 + x * .05) * .12 * clamp(t / .6, 0, 1) });
+    const V = mMul(mT(sh.sx * SC, sh.sy * SC), vClose(pauldTop, 900, 470, 50, pauldRot)); const tq = onTwos(t); const vk = Math.floor(tq * 12) % 3;
+    cel('c5b:' + vk, KNEEL, V, { sunT: .9, haze: ['#ffe2a8', .04], dim: 1, rim: 1.3, seed: 61 + vk, swayFn: (x, y) => Math.sin(vk * 2.1 + x * .05) * .1 }, vClose(pauldTop, 900, 470, 50, pauldRot)).draw();
     let b; const land = [BIRD_LAND[0], BIRD_LAND[1] + 2];
     if (t < .32) b = { x: land[0], y: land[1], rot: 0, pose: { wing: 'fold', legs: 1, head: -.1, beak: 0 } };
     else if (t < .5) b = { x: land[0], y: land[1] + 4, rot: .1, sq: 1, pose: { wing: 'fold', legs: 1, head: .3 } };
@@ -1922,7 +1956,7 @@ function buildCuts() {
     const M = camM({ x: 1080, y: 604, z: 1.03, sx: sh.sx, sy: sh.sy }); drawPlate(ctx, P.bg, M);
     const tq = onTwos(t); const tr = (Math.floor(tq * 12) % 2 ? .35 : -.35) * clamp(t / .5, 0, 1);
     const V = vRoot(M, 'wide'); groundShadow(ctx, V, KNEEL);
-    const o = robot(ctx, K(KNEEL, { x: tr, hy: KNEEL.hy + Math.abs(tr) * .3 }), V, { sunT: .55, haze: ['#d8cba8', .14], dim: .92, rim: 1.3, seed: 71 + (Math.floor(tq * 12) % 3), eye: .95, core: .7 });
+    const vk = Math.floor(tq * 12) % 6; const trq = (vk % 2 ? .35 : -.35) * clamp(t / .5, 0, 1); const c6 = cel('c6:' + vk + ':' + (t < .5 ? Math.round(tq * 12) : 'x'), K(KNEEL, { x: trq, hy: KNEEL.hy + Math.abs(trq) * .3 }), V, { sunT: .55, haze: ['#d8cba8', .14], dim: .92, rim: 1.3, seed: 71 + (vk % 3), eye: .95, core: .7 }, vRoot(camM({ x: 1080, y: 604, z: 1.03 }), 'wide')); c6.draw(); const o = c6.out;
     eyeGlow(ctx, o, .95, 2.2); coreGlow(ctx, o, .7, .9);
     debris(ctx, M, tq, robDeb, 300);
     screenOp('screen', .6, () => drawPlate(ctx, P.rays, M));
@@ -1937,7 +1971,7 @@ function buildCuts() {
     add(1.0, 10, 41, -2, 60, 0, 11, 1.2); add(2.7, 30, -4, -3, 260, 0, 12); add(2.8, 14, -4, -4, 200, 3, 13); add(3.4, 18, 24, -40, 80, 1, 14, 2.6); add(3.9, 20, 0, -80, 120, 1, 15, 3); add(5.9, 16, 16, -4, 120, 0, 16, 1.3); add(4.4, 16, -12, -90, 100, 1, 17, 3);
     rClouds.push([2.75, X - 4 * S, Y - 8, 18, 60, 2.6, 16, 90, 18, -30, 1], [2.85, X - 14 * S, Y - 4, 14, 50, 2.4, 12, 70, 14, -50, 2], [6.45, X + 10 * S, Y - 4, 14, 46, 2.2, 14, 80, 12, 30, 3], [6.5, X - 2 * S, Y - 2, 12, 40, 2, 10, 60, 10, -20, 4]);
     for (let i = 0; i < 26; i++) rLeaves.push([3.4 + hashf(i, 1, 5) * 3, X + (-20 + hashf(i, 2, 5) * 40) * S, Y - (60 + hashf(i, 3, 5) * 50) * S, 70 + hashf(i, 4, 5) * 50, (hashf(i, 5, 5) - .5) * 60, 26, 2 + hashf(i, 6, 5), 7 + hashf(i, 7, 5) * 5, i, 3]); }
-  const DUST = ['#8a8092', '#c4b097', '#f2deb2'];
+  const DUST = ['#7d7689', '#bba98f', '#f0dcae'];
   addCut('rise', 10, (t, f) => {
     const P = PL.low; const tilt = EASE.io(clamp((t - 2.6) / 4.8, 0, 1)), tilt2 = EASE.io(clamp((t - 7.8) / 2, 0, 1));
     const shk = (t > 2.6 && t < 5.4 ? 2.2 : 0) + (t > 6.45 && t < 6.9 ? 5 : 0); const sh = camShake(t, shk, 7);
@@ -1947,7 +1981,7 @@ function buildCuts() {
     const pose = keyed(tq, RISE); const V = vRoot(M, 'low');
     groundShadow(ctx, V, pose, .9);
     const vel = Math.abs(keyed(tq + .1, RISE).hy - pose.hy);
-    const o = robot(ctx, pose, V, { sunT: .85, haze: ['#e6d2aa', .1], dim: .95, rim: 1.4, seed: drawingId(tq, RISE, step) + 800, eye: .95, core: .75, sway: Math.sin(tq * 5) * clamp(vel * .3, 0, .8), sap: Math.sin(tq * 3.2) * clamp(vel * .06, 0, .18) });
+    const c7 = cel('c7:' + Math.round(tq * 24), pose, V, { sunT: .85, haze: ['#e6d2aa', .1], dim: .95, rim: 1.4, seed: drawingId(tq, RISE, step) + 800, eye: .95, core: .75, sway: Math.sin(tq * 5) * clamp(vel * .3, 0, .8), sap: Math.sin(tq * 3.2) * clamp(vel * .06, 0, .18) }); c7.draw(); const o = c7.out;
     eyeGlow(ctx, o, .95, 1.6); coreGlow(ctx, o, .75, .8);
     clouds(ctx, M, tq, rClouds, DUST); debris(ctx, M, tq, rDeb, 520); leaves(ctx, M, tq, rLeaves, 1);
     screenOp('screen', .55, () => drawPlate(ctx, P.rays, M));
@@ -1972,7 +2006,7 @@ function buildCuts() {
     const M = camM({ x: 1000, y: lerp(1560, 1590, EASE.io(clamp(t / 1.3, 0, 1))), z: .975, sx: sh.sx, sy: sh.sy }); drawPlate(ctx, P.bg, M);
     const tq = onTwos(t); const pose = keyed(tq, IGN); const V = vRoot(M, 'low');
     groundShadow(ctx, V, pose, .9);
-    const o = robot(ctx, pose, V, { sunT: .9, haze: ['#e6d2aa', .08], dim: .97, rim: 1.5, seed: drawingId(tq, IGN) + 900, eye: 1, core: .8 + pw * .2, sway: pw * Math.sin(tq * 20) * .5, sap: pw * .25 * Math.sin(tq * 15) });
+    const c9 = cel('c9:' + Math.round(tq * 24), pose, V, { sunT: .9, haze: ['#e6d2aa', .08], dim: .97, rim: 1.5, seed: drawingId(tq, IGN) + 900, eye: 1, core: .8 + pw * .2, sway: pw * Math.sin(tq * 20) * .5, sap: pw * .25 * Math.sin(tq * 15) }); c9.draw(); const o = c9.out;
     const ta = mAngle(o.S.torso) + Math.PI / 2;
     for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (8 + 46 * pw) * (1 + .06 * Math.sin(f * 2.1)), o.ppu * (5 + 4 * pw), f, pw);
     shockRing(ctx, M, tq, 1.3, ROOT.low[0], ROOT.low[1], 900, 1.4);
@@ -2035,7 +2069,7 @@ function buildCuts() {
     ctx.restore();
     if (up < .995) {
       const p = pathP(up), p2 = pathP(Math.min(1, up + .01)); const ang = Math.atan2(p2[1] - p[1], p2[0] - p[0]) + Math.PI / 2;
-      const s = lerp(2.9, .55, Math.pow(up, .7)); const V = mMul(M, mMul(mT(p[0], p[1]), mMul(mR(ang), mMul(mS(s), mT(-2, 60)))));
+      const s = lerp(1.55, .38, Math.pow(up, .7)); const V = mMul(M, mMul(mT(p[0], p[1]), mMul(mR(ang), mMul(mS(s), mT(-2, 60)))));
       const o = robot(ctx, FLY, V, { sunT: 1, haze: ['#5a5560', .35], dim: .55, rim: 2.4, seed: 990 + Math.floor(tq * 12) % 2, eye: 1, core: 1, sway: -.6 });
       for (const en of o.engines) plume(ctx, en[0], en[1], ang + Math.PI / 2, o.ppu * 70, o.ppu * 10, f, 1);
       eyeGlow(ctx, o, 1, 2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; glowSprite(ctx, o.engines[0][0], o.engines[0][1], 70 * SC * (1.2 - up * .5), '255,220,160', .85); ctx.restore();
@@ -2043,7 +2077,7 @@ function buildCuts() {
     for (let i = 0; i < 14; i++) { const a = tq * .35 + i * .45, rx = 260 + hashf(i, 1, 13) * 140; const bx = 520 + Math.cos(a) * rx + i * 18, by = 760 + Math.sin(a) * rx * .22 - i * 6 - tq * 6; const [sx, sy] = mAp(M, bx, by); flockBird(ctx, sx, sy, (4 + hashf(i, 2, 13) * 3) * SC, Math.floor(t * 24 / 2 + i), 'rgba(60,50,62,.8)', Math.sin(a) > 0 ? -1 : 1); }
     leaves(ctx, M, tq, finLeaves, 1);
     post(f, { diff: .26, vig: .28 });
-    fadeBlack(EASE.in(clamp((t - 8.6) / 1.8, 0, 1)));
+    { const a = EASE.in(clamp((t - 8.6) / 1.8, 0, 1)); fadeBlack(a * 1.15, '#1c120a'); fadeBlack(clamp((a - .6) / .4, 0, 1)); }
   });
 }
 function frameAt(T) {
@@ -2126,8 +2160,8 @@ function reverbIR(ac, sec = 3.2) { const n = ac.sampleRate * sec, b = ac.createB
 function scoreFrom(T) {
   const ac = audioCtx(); if (!ac) return;
   if (SND.out) { try { SND.out.gain.cancelScheduledValues(0); SND.out.gain.setValueAtTime(SND.out.gain.value, ac.currentTime); SND.out.gain.linearRampToValueAtTime(0, ac.currentTime + .05); const old = SND.out; setTimeout(() => old.disconnect(), 200); } catch (e) { } }
-  const out = ac.createGain(); out.gain.value = SND.on ? .9 : 0; SND.out = out;
-  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; out.connect(comp); comp.connect(ac.destination);
+  const out = ac.createGain(); out.gain.value = SND.on ? 1.2 : 0; SND.out = out;
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; const lim = ac.createDynamicsCompressor(); lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .002; lim.release.value = .12; const trim = ac.createGain(); trim.gain.value = .9; out.connect(comp); comp.connect(lim); lim.connect(trim); trim.connect(ac.destination);
   const rev = ac.createConvolver(); rev.buffer = SND.ir || (SND.ir = reverbIR(ac)); const revG = ac.createGain(); revG.gain.value = .55; rev.connect(revG); revG.connect(out);
   const now = ac.currentTime + .06; const at = t => now + (t - T);
   const CT = {}; for (const c of FILM.cuts) CT[c.name] = c.t0;
@@ -2165,13 +2199,13 @@ function scoreFrom(T) {
   for (let i = 0; i < 16; i++) flutter(CT.tremor + .3 + hashf(i, 3, 9) * 1.6, .5 + hashf(i, 4, 9) * .6, .025); for (let i = 0; i < 6; i++) song(CT.tremor + .3 + i * .3, 400 + i, .04, 3);
   pad(CT.tremor, 4, [N(35), N(47), N(50), N(54)], .03, 2, 1.5, 700);
   groan(CT.rise + 1.8, 3.2, .16, 44); groan(CT.rise + 3.9, 2.6, .13, 52); groan(CT.rise + 6.1, 1.5, .1, 40);
-  sweep(CT.rise + 2.7, 1.6, 'brown', 300, 120, .25, .8, 'lowpass'); thump(CT.rise + 6.45, 42, .7, 1.1); sweep(CT.rise + 6.45, 1.2, 'pink', 900, 200, .12, .7, 'lowpass');
+  sweep(CT.rise + 2.7, 1.6, 'brown', 300, 120, .25, .8, 'lowpass'); thump(CT.rise + 6.45, 42, .55, 1.1); sweep(CT.rise + 6.45, 1.2, 'pink', 900, 200, .12, .7, 'lowpass');
   pad(CT.rise + 1.5, 2.8, [N(43), N(55), N(59), N(62)], .03, 1.6); pad(CT.rise + 4.3, 2.6, [N(45), N(57), N(61), N(64)], .032, 1.4); pad(CT.rise + 6.9, 2.6, [N(47), N(59), N(62), N(66)], .034, 1.4); pad(CT.rise + 8.6, 4, [N(45), N(57), N(62), N(66), N(69)], .036, 1.6);
   // --- looking up, ignition, launch ---
   pad(CT.pov, 3.4, [N(57), N(62), N(64), N(69)], .03, 1.2, 2.5, 1800); bed(CT.pov, CT.ignite + 1, 'pink', 3200, .9, .03, 1, 1, 'bandpass', .3);
-  sweep(CT.ignite + .4, 1.0, 'white', 400, 3000, .05, 5); thump(CT.ignite + 1.3, 38, .9, 1.6); sweep(CT.ignite + 1.3, 3.4, 'brown', 200, 900, .5, .6, 'lowpass'); bed(CT.ignite + 1.3, CT.launch + 2.2, 'pink', 500, .6, .14, .3, 1.5, 'lowpass', 1.2);
+  sweep(CT.ignite + .4, 1.0, 'white', 400, 3000, .05, 5); thump(CT.ignite + 1.3, 38, .65, 1.6); sweep(CT.ignite + 1.3, 3.4, 'brown', 200, 900, .5, .6, 'lowpass'); bed(CT.ignite + 1.3, CT.launch + 2.2, 'pink', 500, .6, .14, .3, 1.5, 'lowpass', 1.2);
   pad(CT.ignite + 1.2, 3.5, [N(43), N(50), N(55), N(59)], .04, 1.2, 1, 1600);
-  thump(CT.launch + .1, 34, 1.0, 2.2); sweep(CT.launch + .1, 2.2, 'white', 2500, 300, .3, .7, 'lowpass');
+  thump(CT.launch + .1, 34, .7, 2.2); sweep(CT.launch + .1, 2.2, 'white', 2500, 300, .2, .7, 'lowpass');
   // --- the golden sky: full chord, then the theme resolving ---
   pad(CT.launch + .2, 3.4, [N(38), N(45), N(50), N(54), N(57), N(62)], .045, .8, 2.5, 2000);
   const sk = CT.sky; [[0, [43, 50, 55, 59]], [2.4, [45, 52, 57, 61]], [4.8, [47, 54, 59, 62]], [7.0, [43, 50, 55, 62, 67]]].forEach(([t, ch]) => pad(sk + t, 2.6, ch.map(N), .036, 1.0, 2.2, 1700));
@@ -2181,7 +2215,7 @@ function scoreFrom(T) {
 }
 function audioPause() { if (SND.ac && SND.ac.state === 'running') SND.ac.suspend(); }
 function audioResume() { if (SND.ac && SND.ac.state === 'suspended') SND.ac.resume(); }
-function audioMute(on) { SND.on = on; if (SND.out) SND.out.gain.setTargetAtTime(on ? .9 : 0, SND.ac.currentTime, .05); }
+function audioMute(on) { SND.on = on; if (SND.out) SND.out.gain.setTargetAtTime(on ? 1.2 : 0, SND.ac.currentTime, .05); }
 
 /* =====================================================================
    9. MAIN
