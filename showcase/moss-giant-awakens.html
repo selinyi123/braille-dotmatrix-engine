@@ -1856,12 +1856,17 @@ function maskLinear(cel, x0, y0, x1, y1) { const g = cel.getContext('2d'); g.sav
 function blit(c, a = 1, op = 'source-over') { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.globalCompositeOperation = op; ctx.drawImage(c, 0, 0); ctx.restore(); }
 function robot(g, P, V, o = {}) { RC.rim = o.rim ?? 1; RC.sway = o.swayFn || null; const r = drawRobot(g, P, V, { pal: palMix(o.sunT ?? 0, o.haze, o.dim ?? 1), seed: o.seed ?? 1, sunT: o.sunT ?? 0, eye: o.eye || 0, core: o.core || 0, look: o.look || 0, strandSway: o.sway || 0, sapSway: o.sap || 0, cw: o.cw, ch: o.ch }); RC.sway = null; return r; }
 /* clean-up convention: the outer silhouette line is a touch heavier than the inner part lines */
-function boldSilhouette(c, px, col = '#241c20') {
-  if (px <= .2) return; const t = mkCanvas(c.width, c.height), g = t.getContext('2d');
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [.71, .71], [-.71, .71], [.71, -.71], [-.71, -.71]]) g.drawImage(c, dx * px, dy * px);
-  g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, t.width, t.height);
-  g.globalCompositeOperation = 'source-over'; g.drawImage(c, 0, 0);
-  const cg = c.getContext('2d'); cg.save(); cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'copy'; cg.drawImage(t, 0, 0); cg.restore();
+// bounding box of the drawn figure (screen px of the canvas it was drawn into)
+function figureBox(S, pad = 24) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const k of ORDER) { const p = PARTOF(k), m = S[k]; if (!p || !m) continue; if (!p.lbb) p.lbb = polyBounds(sampleSH(p.o, true, .8)); const b = p.lbb, e = 8; for (const [lx, ly] of [[b[0] - e, b[1] - e * 3], [b[2] + e, b[1] - e * 3], [b[0] - e, b[3] + e], [b[2] + e, b[3] + e]]) { const q = mAp(m, lx, ly); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); } } return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]; }
+function boldSilhouette(c, px, col = '#241c20', box = null) {
+  if (px <= .2) return;
+  let [bx0, by0, bx1, by1] = box || [0, 0, c.width, c.height]; bx0 = Math.max(0, Math.floor(bx0)); by0 = Math.max(0, Math.floor(by0)); bx1 = Math.min(c.width, Math.ceil(bx1)); by1 = Math.min(c.height, Math.ceil(by1));
+  const bw = bx1 - bx0, bh = by1 - by0; if (bw <= 0 || bh <= 0) return;
+  const t = mkCanvas(bw, bh), g = t.getContext('2d');
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [.71, .71], [-.71, .71], [.71, -.71], [-.71, -.71]]) g.drawImage(c, bx0, by0, bw, bh, dx * px, dy * px, bw, bh);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, bw, bh);
+  g.globalCompositeOperation = 'source-over'; g.drawImage(c, bx0, by0, bw, bh, 0, 0, bw, bh);
+  const cg = c.getContext('2d'); cg.save(); cg.setTransform(1, 0, 0, 1, 0, 0); cg.clearRect(bx0, by0, bw, bh); cg.drawImage(t, bx0, by0); cg.restore();
 }
 /* held cels photographed under a moving camera: render each drawing once, re-composite with the camera delta */
 const CELC = { map: new Map(), order: [] };
@@ -1871,7 +1876,7 @@ function cel(key, P, V, o = {}, refV = null) {
   if (!e) {
     const pad = PADC(), R0 = refV || V; const c = mkCanvas(W + 2 * pad, H + 2 * pad); const g = c.getContext('2d');
     const out = robot(g, P, mMul(mT(pad, pad), R0), Object.assign({}, o, { cw: W + 2 * pad, ch: H + 2 * pad }));
-    boldSilhouette(c, 1.1 * SC, o.sunT > .5 ? '#2a2026' : '#211b22');
+    boldSilhouette(c, 1.1 * SC, o.sunT > .5 ? '#2a2026' : '#211b22', figureBox(out.S));
     e = { c, Vref: R0, pad, out }; CELC.map.set(key, e); CELC.order.push(key); while (CELC.order.length > 8) CELC.map.delete(CELC.order.shift());
   }
   const D = mMul(V, mInv(e.Vref)), pd = e.pad; const ptf = q => { const p = mAp(D, q[0] - pd, q[1] - pd); return p; };
@@ -2123,7 +2128,7 @@ function buildCuts() {
       const g1 = clearCel(CEL1); const o = robot(g1, pose, VV, { sunT: .95, haze: ['#ffe2a8', .06], dim: 1, rim: 1.6, seed: 950 + Math.floor(t * 24), eye: 1, core: 1, sway: -.8 });
       const ta = mAngle(o.S.torso) + Math.PI / 2;
       for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1, 'body');
-      boldSilhouette(CEL1, 1.1 * SC); blit(CEL1); for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1, 'glow');
+      boldSilhouette(CEL1, 1.1 * SC, '#2a2026', figureBox(o.S)); blit(CEL1); for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1, 'glow');
       if (t > .12) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 9; k++) { const xx = mAp(V, -30 + k * 8 + hashf(k, f, 3) * 6, 0)[0], y0 = mAp(V, 0, -rise / ROOT.low[2] - 10)[1], L = (200 + hashf(k, f, 5) * 500) * SC; ctx.strokeStyle = `rgba(255,248,226,${.25 + hashf(k, f, 7) * .3})`; ctx.lineWidth = (1.5 + hashf(k, f, 9) * 3) * SC; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y0 + L); ctx.stroke(); } ctx.restore(); }
     }
     // light trail left through the gap
