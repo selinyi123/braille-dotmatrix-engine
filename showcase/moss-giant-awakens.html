@@ -297,6 +297,7 @@ function drawWeather(ctx, part, M, lod, pass) {
     const c = W.chips[i]; let p = toScreen(c.p, M, 0, 0, true); if (shrink < 1) { let cx = 0, cy = 0; const n = p.length / 2; for (let j = 0; j < n; j++) { cx += p[2 * j]; cy += p[2 * j + 1]; } cx /= n; cy /= n; for (let j = 0; j < n; j++) { p[2 * j] = cx + (p[2 * j] - cx) * shrink; p[2 * j + 1] = cy + (p[2 * j + 1] - cy) * shrink; } }
     if (c.lip && ppu > 14) { ctx.fillStyle = pal.armorHi; ctx.fill(pathOf(shiftPts(p, LIGHT[0] * -.9, LIGHT[1] * -.9 + .9), true)); }
     ctx.fillStyle = pal[c.c]; ctx.fill(pathOf(p, true));
+    if (ppu > 30 && c.p.length > 12) { ctx.globalAlpha = .7; ink(ctx, p, true, INK_W * .38, pal.ink, { seed: i, light: 0 }); ctx.globalAlpha = 1; }
   }
 }
 
@@ -1323,6 +1324,59 @@ function paintCumulus(g, cx, cy, w, h, cols, light = [.8, -.5], nPuff = 16) {
   g.globalAlpha = 1;
 }
 
+/* ---- forest-floor set dressing ---- */
+function blobPoly(x, y, w, h, seed, flat = .12, n = 40) { const r = mulberry(seed), pts = []; const ph = r() * 10, lean = (r() - .5) * .3;
+  for (let i = 0; i < n; i++) { const a = i / n * TAU; const cx = Math.cos(a), sy = -Math.sin(a); const k = 1 + noise2(cx * 1.4 + ph, sy * 1.4) * .16; const up = sy > 0 ? Math.pow(sy, .8) : sy * flat; pts.push(x + cx * w * .5 * k + up * lean * w * .3, y - up * h * k); }
+  return pts; }
+function fillPts(g, pts, col, a = 1) { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.closePath(); g.fill(); g.globalAlpha = 1; }
+// mossy boulder, lit from the upper right, moss cap on the sky side
+function paintBoulder(g, x, y, w, h, opt = {}) {
+  const fog = opt.fog || FOG, f = opt.f || 0, seed = opt.seed || 1; const L = [.62, -.78];
+  const rock = rampF(['#2a302f', '#3d4442', '#575c56', '#7b7c70', '#a9a08a'], fog, f), moss = rampF(['#1f3526', '#2f4b30', '#46663a', '#6c8c46', '#a9b85e', '#d9d48a'], fog, f);
+  // contact shadow
+  const sg = g.createRadialGradient(x, y + h * .05, 0, x, y + h * .05, w * .65); sg.addColorStop(0, css(mixc([20, 32, 26], hx(fog), f * .8), .55)); sg.addColorStop(1, 'rgba(20,32,26,0)'); g.save(); g.translate(x, y); g.scale(1, .22); g.translate(-x, -y); g.fillStyle = sg; g.fillRect(x - w, y - w, 2 * w, 2 * w); g.restore();
+  const P = blobPoly(x, y + h * .04, w, h, seed);
+  fillPts(g, P, rampAt(rock, .2, 3));
+  g.save(); g.beginPath(); g.moveTo(P[0], P[1]); for (let i = 2; i < P.length; i += 2) g.lineTo(P[i], P[i + 1]); g.closePath(); g.clip();
+  const cx = x, cy = y - h * .55;
+  for (let i = 0; i < w * h / 70; i++) { const px = cx + Rr(-.55, .55) * w, py = cy + Rr(-.6, .6) * h; const nx = (px - cx) / (w * .5), ny = (py - cy) / (h * .5); const lit = clamp(.35 + (nx * L[0] + ny * L[1]) * .45 + (R() - .5) * .25, 0, 1); dab(g, px, py, Rr(4, 12), Rr(3, 8), R() * 3, rampAt(rock, lit, 6), Rr(.6, .95), .3); }
+  for (let i = 0; i < 6; i++) { const px = cx + Rr(-.4, .4) * w, py = cy + Rr(-.2, .5) * h; bstroke(g, [px, py, px + Rr(-20, 20), py + Rr(10, 30), px + Rr(-25, 25), py + Rr(25, 50)], Rr(1.5, 3), .5, rampAt(rock, .02, 3), .7); }
+  // moss cap: dense on the top, dripping down in tongues
+  for (let i = 0; i < w * h / 26; i++) { const px = cx + Rr(-.6, .6) * w; const top = cy - h * .5 * Math.sqrt(Math.max(0, 1 - Math.pow((px - cx) / (w * .55), 2))); const depth = h * (.18 + .3 * (noise2(px * .02 + seed, 3) * .5 + .5)) * (R() < .15 ? 2 : 1); const py = top + R() * depth; const nx = (px - cx) / (w * .5); const lit = clamp(.45 + nx * .25 - (py - top) / depth * .35 + (R() - .5) * .3, 0, 1); dab(g, px, py, Rr(2.5, 7), Rr(2, 5), R() * 3, rampAt(moss, lit, 7), Rr(.75, 1), .35); }
+  g.restore();
+  // rim light on the sun-facing top edge, a few grass blades at the base
+  for (let i = 0; i < P.length; i += 2) { const nx = (P[i] - cx) / (w * .5), ny = (P[i + 1] - cy) / (h * .5); if (nx * L[0] + ny * L[1] > .5 && R() < .7) dab(g, P[i] - 2, P[i + 1] + 2, Rr(2, 5), Rr(1.5, 3), 0, css(mixc(hx('#e9d79a'), hx(fog), f * .6)), Rr(.5, .9)); }
+  paintGrass(g, x - w * .6, x + w * .6, y - 6, y + 6, rampF(['#22382b', '#2e4a35', '#41623f', '#5c7d4a', '#8ea25e'], fog, f), { area: 14, l0: 6, l1: 18, w0: 1, w1: 2.4, light: () => .4 });
+}
+// fallen log: bark, moss on top, a broken end showing the rings, shelf fungi
+function paintLog(g, x0, y0, x1, y1, r, opt = {}) {
+  const fog = opt.fog || FOG, f = opt.f || 0; const ang = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0), c = Math.cos(ang), s = Math.sin(ang);
+  const bark = rampF(['#231e1b', '#352d27', '#4a3f35', '#685a48', '#8f7d60'], fog, f), moss = rampF(['#1f3526', '#2f4b30', '#46663a', '#6c8c46', '#a9b85e', '#d9d48a'], fog, f);
+  g.save(); g.translate(x0, y0); g.rotate(ang);
+  const sg = g.createLinearGradient(0, r * .6, 0, r * 1.5); sg.addColorStop(0, css(mixc([18, 28, 22], hx(fog), f * .8), .5)); sg.addColorStop(1, 'rgba(18,28,22,0)'); g.fillStyle = sg; g.fillRect(-10, r * .6, L + 20, r * .9);
+  const body = [0, -r, L, -r * .92, L + r * .15, 0, L, r * .95, 0, r]; fillPts(g, body, rampAt(bark, .15, 3));
+  g.save(); g.beginPath(); g.moveTo(0, -r); g.lineTo(L, -r * .92); g.lineTo(L + r * .15, 0); g.lineTo(L, r * .95); g.lineTo(0, r); g.closePath(); g.clip();
+  for (let i = 0; i < L * r / 25; i++) { const u = R() * L, v = Rr(-1, 1) * r; const lit = clamp(.45 - v / r * .4 + (R() - .5) * .3, 0, 1); bstroke(g, [u - Rr(8, 22), v + Rr(-1, 1), u + Rr(8, 22), v + Rr(-1, 1)], Rr(1.2, 3), .6, rampAt(bark, lit, 6), Rr(.5, .9)); }
+  for (let i = 0; i < L * r / 6; i++) { const u = R() * L; const top = -r + R() * r * (.65 + .55 * (noise2(u * .015, 7) * .5 + .5)); dab(g, u, top, Rr(3, 9), Rr(2, 6), R() * 3, rampAt(moss, clamp(.68 - (top + r) / r * .45 + (R() - .5) * .3, 0, 1), 7), Rr(.8, 1), .35); }
+  for (let i = 0; i < L / 9; i++) { const u = R() * L; dab(g, u, -r * Rr(.92, 1.05), Rr(4, 10), Rr(2.5, 5), 0, rampAt(moss, Rr(.5, .95), 7), 1, .4); }
+  g.restore();
+  // broken end: the rings
+  g.fillStyle = css(mixc(hx('#9b8562'), hx(fog), f)); g.beginPath(); g.ellipse(-r * .05, 0, r * .42, r, 0, 0, TAU); g.fill();
+  g.strokeStyle = css(mixc(hx('#6f5a42'), hx(fog), f)); g.lineWidth = 1.2; for (let k = 1; k <= 4; k++) { g.beginPath(); g.ellipse(-r * .05, 0, r * .42 * k / 5, r * k / 5, 0, 0, TAU); g.stroke(); }
+  // shelf fungi
+  for (let i = 0; i < 3; i++) { const u = Rr(.2, .8) * L, v = Rr(-.1, .5) * r; g.fillStyle = css(mixc(hx('#d8c49a'), hx(fog), f)); g.beginPath(); g.ellipse(u, v, Rr(6, 10), Rr(2.5, 4), 0, Math.PI, TAU); g.fill(); }
+  g.restore();
+}
+// big surface roots snaking across the ground from a trunk base
+function paintRoot(g, pts, w0, opt = {}) {
+  const fog = opt.fog || FOG, f = opt.f || 0; const bark = rampF(['#161d1b', '#222a27', '#323a35', '#4b5047', '#77705a'], fog, f);
+  bstroke(g, pts, w0, w0 * .15, rampAt(bark, .15, 3), 1);
+  const n = pts.length / 2;
+  for (let i = 0; i < n - 1; i++) { const t = i / (n - 1), w = lerp(w0, w0 * .15, t); bstroke(g, [pts[2 * i], pts[2 * i + 1] - w * .25, pts[2 * i + 2], pts[2 * i + 3] - w * .2], w * .35, w * .3, rampAt(bark, .55, 5), .7); if (R() < .5) dab(g, pts[2 * i] + Rr(-4, 4), pts[2 * i + 1] - w * .35, Rr(3, 7), Rr(2, 4), 0, rampAt(rampF(['#24402c', '#3a5c38', '#5b7d45', '#94a85c'], fog, f), Rr(.3, .9), 6), Rr(.7, 1)); }
+}
+// dappled sunlight on the floor
+function paintDapples(g, x0, x1, y0, y1, n, col = '#e9dc9c', a = .35) { for (let i = 0; i < n; i++) { const y = Rr(y0, y1), d = (y - y0) / Math.max(1, y1 - y0), x = Rr(x0, x1); const rx = Rr(6, 22) * (.5 + d), ry = rx * Rr(.18, .32); const gr = g.createRadialGradient(x, y, 0, x, y, rx); gr.addColorStop(0, css(hx(col), a)); gr.addColorStop(.7, css(hx(col), a * .6)); gr.addColorStop(1, css(hx(col), 0)); g.save(); g.translate(x, y); g.scale(1, ry / rx); g.translate(-x, -y); g.fillStyle = gr; g.fillRect(x - rx, y - rx, 2 * rx, 2 * rx); g.restore(); } }
+
 /* =====================================================================
    6. BACKGROUND PLATES — one painting per layout, like a real BG department
    ===================================================================== */
@@ -1390,9 +1444,21 @@ function plateWide() {
   paintGrass(g, 0, LW, gy, LH, groundR, { area: 20, l0: 3, l1: 24, w0: .8, w1: 3.2, pow: 1.1, light: (x, y) => .44 - (y - gy) / (LH - gy) * .36 + pool(x, y) * .55 });
   paintFlowers(g, 0, LW, gy + 20, LH, 480, ['#e9e6d8', '#e6dcae', '#b8aed0', '#e9c95a'], .9, 3.6);
   mistBand(g, gy + 4, 26, '#f4e9cb', .6, -100, LW + 100);
+  // forest-floor set dressing: an old fallen log, mossy boulders, dappled light
+  paintLog(g, 1400, 812, 1960, 796, 40, { f: .3 });
+  paintBoulder(g, 1560, 868, 150, 96, { seed: 31, f: .2 });
+  paintBoulder(g, 570, 840, 92, 58, { seed: 32, f: .26 });
+  paintBoulder(g, 1290, 962, 96, 60, { seed: 33, f: .08 });
+  paintBoulder(g, 400, 990, 250, 160, { seed: 34, f: .02 });
+  for (let i = 0; i < 6; i++) paintFern(g, Rr(1380, 1880), Rr(840, 870), Rr(50, 80), rampF(['#1e3328', '#2a4532', '#3d5d3f', '#5b7b4c', '#8ea366'], FOG, .25), { fronds: 7, lx: -.4 });
+  for (let i = 0; i < 4; i++) paintFern(g, Rr(300, 540), Rr(980, 1010), Rr(70, 110), rampF(['#1a2c22', '#25402e', '#36573b', '#557548', '#869d60'], FOG, .05), { fronds: 7 });
   // near framing trunks (dark, backlit)
   paintTrunk2(g, 120, LH + 30, 1400, 300, 210, { base: '#202b28', dark: '#151d1c', light: '#3b4640', rim: '#d7bb85', fog: FOG, f: 0, seed: 11, side: 1, roots: 5, barkA: 45, barkW: 1.6, barkL: 1.6, moss: ['#1f3527', '#2b4631', '#3c5c3a', '#567447'], rimW: 1.3 });
   paintTrunk2(g, 2085, LH + 30, 1400, 330, 230, { base: '#212c29', dark: '#151d1c', light: '#3b4640', rim: '#f2d59c', fog: FOG, f: 0, seed: 12, side: -1, roots: 5, barkA: 45, barkW: 1.6, barkL: 1.6, moss: ['#1f3527', '#2b4631', '#3c5c3a', '#567447'], rimW: 1.4 });
+  // surface roots snaking out from the giant trunks
+  paintRoot(g, [250, 1120, 360, 1085, 480, 1090, 600, 1065, 700, 1070], 46);
+  paintRoot(g, [200, 1170, 330, 1160, 430, 1175, 520, 1160], 34);
+  paintRoot(g, [1950, 1110, 1840, 1080, 1720, 1090, 1610, 1066, 1520, 1072], 50);
   applyPaper(g, LW, LH, .8);
   // foreground book layer
   const [fg, f] = plateCanvas(LW, LH);
@@ -1420,7 +1486,12 @@ function plateSoft() {
   });
   // sunlit foliage in the middle distance, then the dark near canopy; all of it far behind the giant
   const midF = rampF(['#2f4a3c', '#3f6249', '#5f8352', '#93a862', '#d7cf8c', '#f6e7b0'], FOG, .42);
-  for (let i = 0; i < 7; i++) { const x = Rr(150, 2050), y = Rr(-40, 140); const pts = []; const n = 10; const L = Rr(260, 520), sw = Rr(-60, 60); for (let k = 0; k <= n; k++) { const t = k / n; pts.push(x + sw * t * t, y + L * t); } bstroke(g, pts, 7, 2, rampAt(midF, .1, 4), .9); for (let k = 2; k <= n; k++) paintFoliage(g, pts[2 * k] + Rr(-30, 30), pts[2 * k + 1], Rr(40, 80), Rr(30, 55), midF, { mode: 'back', leaf: 7, clumps: 2, lx: .7, ly: -.7 }); }
+  // broad out-of-focus boughs reaching in from the sides (they will be softened by the depth-of-field pass)
+  for (const [x0, y0, x1, y1, dir] of [[-80, 260, 620, 420, 1], [2280, 180, 1560, 380, -1], [2280, 640, 1760, 700, -1]]) {
+    const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push(lerp(x0, x1, t), lerp(y0, y1, t) + Math.sin(t * Math.PI) * -40); }
+    bstroke(g, pts, 26, 6, rampAt(midF, .08, 3), 1);
+    for (let k = 1; k <= 8; k++) paintFoliage(g, pts[2 * k] + Rr(-40, 40), pts[2 * k + 1] + Rr(10, 60), Rr(90, 150), Rr(60, 100), midF, { mode: 'back', leaf: 9, clumps: 3, lx: .7 * dir, ly: -.7 });
+  }
   paintMass(g, bushOutline(-100, LW + 100, 1180, 30, 120, 90), rampF(['#22362f', '#2f4a3f', '#466451', '#7d9068', '#d6cc93'], FOG, .45), { mode: 'back', leaf: 8, lx: .8 });
   mistBand(g, 760, 300, FOG, .3, -100, LW + 100);
   const canNear = ramp(['#1d2e28', '#263a32', '#34503f', '#4a6a50', '#86935f', '#ecd896']);
@@ -1491,6 +1562,14 @@ function plateLow() {
   paintGrass(g, 0, LW, gy, LH, groundR, { area: 20, l0: 4, l1: 26, w0: .8, w1: 3.2, light: (x, y) => .44 - (y - gy) / (LH - gy) * .36 + pool(x, y) * .55 });
   paintFlowers(g, 0, LW, gy + 20, LH, 360, ['#e9e6d8', '#e6dcae', '#b8aed0', '#e9c95a'], 1, 4);
   mistBand(g, gy + 4, 26, '#f4e9cb', .6, -100, LW + 100);
+  // forest-floor set dressing around the giant (it kneels at x≈840-1170)
+  paintLog(g, 170, 2094, 640, 2084, 42, { f: .22 });
+  paintBoulder(g, 1660, 2150, 220, 140, { seed: 41, f: .1 });
+  paintBoulder(g, 1360, 2112, 96, 60, { seed: 42, f: .18 });
+  paintBoulder(g, 430, 2250, 320, 200, { seed: 43, f: 0 });
+  for (let i = 0; i < 5; i++) paintFern(g, Rr(1560, 1800), Rr(2150, 2175), Rr(70, 110), rampF(['#1a2c22', '#25402e', '#36573b', '#557548', '#869d60'], FOG, .08), { fronds: 7, lx: -.5 });
+  paintRoot(g, [300, 2380, 450, 2350, 600, 2360, 760, 2330, 860, 2338], 58);
+  paintRoot(g, [1760, 2360, 1640, 2330, 1520, 2342, 1400, 2318], 52);
   applyPaper(g, LW, LH, .8);
   const [fg, f] = plateCanvas(LW, LH); seedPaint(3202);
   const fern = ramp(['#0e1915', '#14231d', '#1c3026', '#284331', '#3d5c3e']);
@@ -1827,7 +1906,8 @@ const R5 = K(R4, { hy: -49.6, legN: { ax: 16.5, ay: -12, fa: -.12 } });
 const R6 = K(R5, { hx: 4, hy: -53.8, tor: .07, head: .2, legN: { ax: 10, ay: -7, fa: 0 }, armN: { ik: [0, -55] }, armF: { ik: [27, -56] } });
 const R7 = K(R6, { hy: -52.8, tor: .1, head: .23, armN: { ik: [-4, -54], ha: -.05 }, armF: { ik: [26, -57], ha: -.05 } });
 const R8 = K(R7, { head: -.52, tor: -.05, hy: -53.3, armN: { ik: [-5, -55.5] }, armF: { ik: [27, -58] } });
-const RISE = [[0, KNEEL], [1.0, R1, 'io'], [2.2, R2, 'io'], [4.0, R3, 'heavy'], [5.4, R4, 'heavy'], [6.0, R5, 'io'], [6.5, R6, 'in'], [7.1, R7, 'out'], [8.0, R7], [9.6, R8, 'io'], [10, R8]];
+const R6b = K(R6, { hy: -51.4, tor: .14, head: .3 }); const R8b = K(R8, { head: -.62, tor: -.07 });
+const RISE = [[0, KNEEL], [1.0, R1, 'io'], [2.2, R2, 'io'], [4.0, R3, 'heavy'], [5.4, R4, 'heavy'], [6.0, R5, 'io'], [6.5, K(R6, { hy: -53.1 }), 'in'], [6.66, R6b, 'out'], [7.25, R7, 'io'], [8.0, R7], [9.3, R8b, 'io'], [9.85, R8, 'io'], [10, R8]];
 const CROUCH = K(R8, { hy: -49.2, tor: .22, head: -.22, armN: { ik: [-13, -57], ha: -.3 }, armF: { ik: [15, -61], ha: -.3 } });
 const EXTEND = K(R8, { hy: -55.8, tor: -.06, head: -.32, legN: { ax: 9, ay: -6.5 }, legF: { ax: -1, ay: -6.5 }, armN: { ik: [-7, -60], ha: -.1 }, armF: { ik: [23, -63], ha: -.1 } });
 const FLY = K(EXTEND, { legN: { ax: 6, ay: -2, fa: .35 }, legF: { ax: 1, ay: -1, fa: .4 }, head: -.2, tor: 0 });
@@ -1986,7 +2066,8 @@ function buildCuts() {
     const M = camM({ x: 1000 + tilt * 12, y: lerp(lerp(1790, 1560, tilt), 1180, tilt2), z: lerp(1.0, .97, tilt), sx: sh.sx, sy: sh.sy });
     drawPlate(ctx, P.bg, M);
     const step = (t < 2.2 || (t > 7.1 && t < 9.6)) ? 3 : 2; const tq = onTwos(t, step);
-    const pose = keyed(tq, RISE); const V = vRoot(M, 'low');
+    const pose = keyed(tq, RISE); pose.head = keyed(Math.max(0, tq - .3), RISE).head; const lagA = keyed(Math.max(0, tq - .15), RISE); pose.armN = lagA.armN; pose.armF = lagA.armF;
+    const V = vRoot(M, 'low');
     groundShadow(ctx, V, pose, .9);
     const vel = Math.abs(keyed(tq + .1, RISE).hy - pose.hy);
     const c7 = cel('c7:' + Math.round(tq * 24), pose, V, { sunT: .85, haze: ['#e6d2aa', .1], dim: .95, rim: 1.4, seed: drawingId(tq, RISE, step) + 800, eye: .95, core: .75, sway: Math.sin(tq * 5) * clamp(vel * .3, 0, .8), sap: Math.sin(tq * 3.2) * clamp(vel * .06, 0, .18) }); c7.draw(); const o = c7.out;
