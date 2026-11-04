@@ -235,6 +235,7 @@ function drawPart(ctx, part, M, st = {}) {
   if (part.lines) for (const l of part.lines) {
     if (l.minLod && lod < l.minLod) continue;
     const lp = scr(l.o, !!l.closed, M, part.sid + 17);
+    if (lod > 0 && !l.c) { const sx = -LIGHT[0] * INK_W * .9, sy = -LIGHT[1] * INK_W * .9; ink(ctx, shiftPts(lp, sx, sy), !!l.closed, INK_W * (l.w || .55) * 1.9, pal[base + 'Sh'] || pal.armorSh, { seed: part.sid + 6, taper: l.closed ? 0 : 1, light: 0, taperLen: 8 }); }
     ink(ctx, lp, !!l.closed, INK_W * (l.w || .55) * (lod === 2 ? 1.1 : 1), l.c ? pal[l.c] : pal.ink, { seed: part.sid + 5, taper: l.closed ? 0 : 1, light: 0, taperLen: 6 });
   }
   if (part.regs) for (const r of part.regs) { if (r.minLod && lod < r.minLod) continue; if (r.lw === 0) continue; ink(ctx, scr(r.o, true, M, part.sid + 3), true, INK_W * (r.lw || .7), pal.ink, { seed: part.sid + 2 }); }
@@ -382,9 +383,9 @@ function drawGrime(ctx, part, M) {
    ===================================================================== */
 const PALSRC = {
   sun: {
-    armor: '#86a596', armorSh: '#577081', armorDeep: '#3d4d63', armorHi: '#cfdcc0', rim: '#ffe7aa',
-    cream: '#e9dbb4', creamSh: '#a49eb0', creamDeep: '#7b7891', creamHi: '#fff4d6',
-    iron: '#6d635d', ironSh: '#423d48', ironDeep: '#2d2a34', ironHi: '#b3a592',
+    armor: '#8c9a86', armorSh: '#626d70', armorDeep: '#454c56', armorHi: '#cdd3bd', rim: '#ffe5a8',
+    cream: '#dccfa9', creamSh: '#a19b9a', creamDeep: '#7a7680', creamHi: '#fbf0d4',
+    iron: '#6a5f57', ironSh: '#463f43', ironDeep: '#2e2a30', ironHi: '#ad9f8c',
     rust: '#b5663a', rustDk: '#713c2c', rustLt: '#dd9d5e', grime: '#4b4442',
     dirt: '#76604a', dirtSh: '#4c3f3b',
     moss: '#6f8f45', mossSh: '#4a6b3f', mossDeep: '#2e4a38', mossHi: '#a9bb62', mossLine: '#1f382c',
@@ -395,9 +396,9 @@ const PALSRC = {
     glow: '#c9fff4', glowMid: '#68e3d9', glowDeep: '#239aa6', lichen: '#c9c69a', lichenSh: '#a3a07c'
   },
   shade: {
-    armor: '#6b8182', armorSh: '#4a5a6a', armorDeep: '#353f52', armorHi: '#98aaa2', rim: '#e9dcb8',
-    cream: '#b9b5a6', creamSh: '#7f8195', creamDeep: '#62647c', creamHi: '#d8d3c0',
-    iron: '#57525a', ironSh: '#37353f', ironDeep: '#26252f', ironHi: '#8c8783',
+    armor: '#6d7874', armorSh: '#4f5862', armorDeep: '#3a404b', armorHi: '#a0a9a1', rim: '#e9dcb8',
+    cream: '#aeaa98', creamSh: '#7e7f88', creamDeep: '#616270', creamHi: '#d3cfbd',
+    iron: '#55504f', ironSh: '#39353b', ironDeep: '#27252b', ironHi: '#8a837c',
     rust: '#8c5a47', rustDk: '#583634', rustLt: '#ab7c62', grime: '#3d3a40',
     dirt: '#5e5148', dirtSh: '#403840',
     moss: '#526f4a', mossSh: '#3a5644', mossDeep: '#283f3c', mossHi: '#7d9663', mossLine: '#19302c',
@@ -431,7 +432,7 @@ RB.torso = part({
     { o: SH('-20.8,-30.2* -10.2,-29.4* -10.2,-27.8* -20.9,-28.6*'), base: 'ironDeep', lw: .45, minLod: 1 },
   ],
   sh: [
-    { o: SH('-30,-62* -1.4,-62* -0.4,-50 -1.4,-38 -0.6,-26 1.6,-15 4.6,-5 7,6* -30,6*'), c: 'armorSh' },
+    { o: SH('-30,-62* -8,-62* -4.5,-53 -2,-42 -1.2,-30 0.6,-19 3.8,-8 7,6* -30,6*'), c: 'armorSh' },
     { o: SH('-30,-44* -21.6,-42 -17,-30 -12,-17 -7,-6 -3,6* -30,6*'), c: 'armorDeep' },
     { o: SH('1,-19.4 21,-18.4* 19,-13.6 13,-12.6 6,-13.4 1,-14.2'), c: 'armorSh' },
   ],
@@ -492,14 +493,12 @@ RB.pauldF = part({
   lines: [{ o: SH('-12,-0.4 -5,2.2 2.6,2.8 8.4,1.8 11.4,-0.4'), w: .6 }, { o: SH('-12.4,-4.6 -5,-1.8 2.6,-1.4 8.6,-2.6 11.8,-4.6'), w: .6 }],
   dots: [[-9.6, 1.8], [-4.4, 3.4], [1.6, 3.8], [6.6, 3]],
 });
-RB.uarm = part({ o: SH('-6.4,-3 0,-5.2 6.4,-3 7,7 6.6,16 6,22.6 -6,22.6 -6.6,16 -7,7'), base: 'iron', sd: .6, rimd: .45,
-  sh: [{ o: SH('-12,-10* -0.8,-10* -1.2,6 -0.8,24* -12,24*'), c: 'ironSh' }],
+RB.uarm = part({ o: SH('-6.4,-3 0,-5.2 6.4,-3 7,7 6.6,16 6,22.6 -6,22.6 -6.6,16 -7,7'), base: 'iron', sd: 4.2, dd: 1.6, rimd: .45,
   lines: [{ o: SH('-6.8,8.6 0,9.8 6.8,8.6'), w: .5 }, { o: SH('-6.5,14.2 0,15.4 6.5,14.2'), w: .5 }, { o: SH('-6.2,19.6 0,20.6 6.2,19.6'), w: .5 }] });
 RB.farm = part({
   o: SH('-6.2,-3 -2.4,-6.8 3.6,-6.8 7,-3.2 7.8,3 9.6,11 10.8,19.4 11,26.4 7.4,29 -7,29 -9.8,26.2 -9.4,17.6 -8,8.4 -7.2,2'),
-  base: 'armor', sd: .8, rimd: .8,
+  base: 'armor', sd: 5.2, dd: 1.98, rimd: .8,
   regs: [{ o: SH('-6,-3 -2.4,-6.6 3.4,-6.6 6.8,-3.2 6.8,0.8 2.2,2.4 -3.4,2.2 -6.6,0.6'), base: 'iron', sd: .9, lw: .65 }],
-  sh: [{ o: SH('-16,-10* -1.6,-10* -2.2,6 -1.2,16 0.4,32* -16,32*'), c: 'armorSh' }, { o: SH('-16,20* 16,20* 16,32* -16,32*'), c: 'armorDeep' }],
   lines: [
     { o: SH('2.6,5 5.8,11.6 7.2,18.4 7.4,25.4'), w: .55 },
     { o: SH('-8.8,20.4 0,21.4 10.4,20.2'), w: .55 },
@@ -507,33 +506,28 @@ RB.farm = part({
   ],
   dots: [[-6.8, 23.4], [-2.4, 24.2], [2.4, 24.2], [7.2, 23.4], [4.4, 8], [6.2, 14.6], [7.2, 20.8]],
 });
-RB.palm = part({ o: SH('-8.8,-1 -3,-2.9 5,-2.9 9.8,-0.4 10.6,5.6 9.6,11 -7.6,11.4 -10,6'), base: 'armor', sd: .6, rimd: .5,
-  sh: [{ o: SH('-14,-6* -1,-6* -1.6,4 -1,16* -14,16*'), c: 'armorSh' }],
+RB.palm = part({ o: SH('-8.8,-1 -3,-2.9 5,-2.9 9.8,-0.4 10.6,5.6 9.6,11 -7.6,11.4 -10,6'), base: 'armor', sd: 4.6, dd: 1.75, rimd: .5,
   lines: [{ o: SH('-8.8,3.6 0,4.4 9.4,3.6'), w: .5 }], dots: [[-5.2, 7.4], [0, 7.8], [5.2, 7.4]] });
-RB.fing1 = part({ o: SH('-2.6,-0.8 2.6,-0.8 3,2.6 2.7,5.9 -2.7,5.9 -3,2.6'), base: 'iron', sd: .5, rimd: .3, lw: .85, sh: [{ o: SH('-5,-3* -0.2,-3* -0.4,9* -5,9*'), c: 'ironSh' }] });
-RB.fing2 = part({ o: SH('-2.5,-0.4 2.5,-0.4 2.7,2.6 1.9,4.9 0,5.7 -1.9,4.9 -2.7,2.4'), base: 'armor', sd: .5, rimd: .3, lw: .85, sh: [{ o: SH('-5,-3* -0.2,-3* -0.4,9* -5,9*'), c: 'armorSh' }] });
-RB.thumb = part({ o: SH('-2.8,-1 2.8,-0.6 3.4,3 2.6,6.8 -0.4,7.6 -3,5.4 -3.4,2'), base: 'armor', sd: .5, rimd: .3, lw: .85, sh: [{ o: SH('-6,-3* -0.6,-3* -0.6,10* -6,10*'), c: 'armorSh' }] });
+RB.fing1 = part({ o: SH('-2.6,-0.8 2.6,-0.8 3,2.6 2.7,5.9 -2.7,5.9 -3,2.6'), base: 'iron', sd: 1.7, dd: 0.65, rimd: .3, lw: .85, sh: [{ o: SH('-5,-3* -0.2,-3* -0.4,9* -5,9*'), c: 'ironSh' }] });
+RB.fing2 = part({ o: SH('-2.5,-0.4 2.5,-0.4 2.7,2.6 1.9,4.9 0,5.7 -1.9,4.9 -2.7,2.4'), base: 'armor', sd: 1.6, dd: 0.61, rimd: .3, lw: .85, sh: [{ o: SH('-5,-3* -0.2,-3* -0.4,9* -5,9*'), c: 'armorSh' }] });
+RB.thumb = part({ o: SH('-2.8,-1 2.8,-0.6 3.4,3 2.6,6.8 -0.4,7.6 -3,5.4 -3.4,2'), base: 'armor', sd: 1.9, dd: 0.72, rimd: .3, lw: .85, sh: [{ o: SH('-6,-3* -0.6,-3* -0.6,10* -6,10*'), c: 'armorSh' }] });
 RB.pelvis = part({
   o: SH('-11.4,-6.6 -4,-9 5,-9 11.2,-6.6 12.8,0 11.4,6.4 5.2,8.6 -5.4,8.6 -11.4,6.4 -12.8,0'),
-  base: 'iron', sd: 1.4, rimd: .6,
+  base: 'iron', sd: 6.0, dd: 2.28, rimd: .6,
   regs: [{ o: SH('1,-6 8.6,-5.4 10.6,0 9.6,7.6 5,9.8 1.4,8.4 0,1'), base: 'armor', sd: 1.2, lw: .7 }],
-  sh: [{ o: SH('-20,-14* -2,-14* -2.6,0 -1,14* -20,14*'), c: 'ironSh' }],
 });
-RB.skirtN = part({ o: SH('-11.6,-4.6 -4.4,-5.8 0.6,-4.6 1.4,2 0,8.6 -5.2,10.6 -10.8,8.4 -12.6,2'), base: 'armor', sd: .6, rimd: .6,
-  sh: [{ o: SH('-20,-10* -5.4,-10* -6.4,2 -4,16* -20,16*'), c: 'armorSh' }], dots: [[-8.6, -1.4], [-3.2, -2], [-4.6, 6.6]] });
+RB.skirtN = part({ o: SH('-11.6,-4.6 -4.4,-5.8 0.6,-4.6 1.4,2 0,8.6 -5.2,10.6 -10.8,8.4 -12.6,2'), base: 'armor', sd: 4.2, dd: 1.6, rimd: .6, dots: [[-8.6, -1.4], [-3.2, -2], [-4.6, 6.6]] });
 RB.thigh = part({
   o: SH('-7.6,-3.6 0,-6.4 7.6,-3.6 8.6,6 8,15.4 6.6,23.6 -6.4,23.6 -7.8,15.4 -8.6,6'),
-  base: 'iron', sd: .6, rimd: .6,
+  base: 'iron', sd: 5.0, dd: 1.9, rimd: .6,
   regs: [{ o: SH('-0.4,-3 6.6,-2 7.4,8 6.6,18 5.2,22.4 0,21.6 -1.4,12'), base: 'armor', sd: 1.0, lw: .7 }],
-  sh: [{ o: SH('-14,-10* -1.8,-10* -2.6,8 -2,28* -14,28*'), c: 'ironSh' }],
   lines: [{ o: SH('-8,9 -4.6,9.6 -1.6,9.6'), w: .45 }, { o: SH('-7.6,15.6 -4.4,16.2 -1.6,16'), w: .45 }],
   dots: [[2.6, 1], [3, 18.6], [5.4, 9.8]],
 });
 RB.shin = part({
   o: SH('-6.8,-4.6 0,-7.6 6.8,-4.6 8.2,2 8.8,10 9.8,18 10.8,24.4 -9.8,24.4 -8.8,15 -7.8,5'),
-  base: 'armor', sd: .8, rimd: .8,
+  base: 'armor', sd: 5.6, dd: 2.13, rimd: .8,
   regs: [{ o: SH('-5.8,-7.6 0.6,-9.6 7.2,-7.4 8.6,-2.6 6,1.8 -2.6,2 -6.6,-2.4'), base: 'armor', sd: 1.2, lw: .8 }],
-  sh: [{ o: SH('-16,-12* -1,-12* -1.8,8 -0.8,30* -16,30*'), c: 'armorSh' }, { o: SH('-16,19* 16,19* 16,30* -16,30*'), c: 'armorDeep' }],
   lines: [{ o: SH('2.4,4.6 4.8,12.4 6.6,24.2'), w: .55 }, { o: SH('-9.4,19.8 0,20.8 10.2,19.6'), w: .55 }, { o: SH('-7.6,8 -8.4,15'), w: .4, minLod: 2 }],
   dots: [[-7.6, 22.4], [-2.6, 22.8], [2.8, 22.8], [8, 22.2], [4, 10], [0.6, -4.6], [-3.6, -3.2], [4.8, -3.6]],
 });
@@ -546,9 +540,8 @@ RB.foot = part({
 });
 RB.eng = part({
   o: SH('-6,-12.4 0,-14.6 6,-12.4 7,2 6.6,15.6 -6.6,15.6 -7,2'),
-  base: 'armor', sd: .8, rimd: .7,
+  base: 'armor', sd: 4.4, dd: 1.67, rimd: .7,
   regs: [{ o: SH('-5.6,14.6 5.6,14.6 8,22.6* -8,22.6*'), base: 'iron', sd: 1.6, lw: .8 }, { o: SH('-6.2,-8.4 6.2,-8.4 6.6,-4.2 -6.6,-4.2'), base: 'iron', lw: .55 }],
-  sh: [{ o: SH('-14,-20* -1,-20* -1.6,4 -1,30* -14,30*'), c: 'armorSh' }],
   lines: [{ o: SH('-6.8,4 0,5 6.8,4'), w: .5 }],
   dots: [[-3.8, 10.6], [0, 11.2], [3.8, 10.6]],
 });
@@ -587,7 +580,7 @@ function rig(P) {
     M['farm' + s] = mTR(E[0], E[1], t2);
     const W = mAp(M['farm' + s], 0, LEN.farm);
     const ha = A.ha !== undefined ? A.ha : t2 + (A.a ? A.a[2] : 0);
-    M['palm' + s] = mTR(W[0], W[1], ha);
+    M['palm' + s] = mMul(mTR(W[0], W[1], ha), mS(.88));
     const curl = A.curl || 0, spread = A.spread || 0;
     const fx = [[-5.4, 10.2, .16], [-0.6, 10.6, 0], [4.2, 10.4, -.14]];
     for (let f = 0; f < 3; f++) {
@@ -1135,9 +1128,9 @@ function paintFoliage(g, cx, cy, rx, ry, rp, opt = {}) {
       if (mode === 'back') t = d > .8 && f > .25 ? .55 + f * .45 * Rr(.7, 1) : .05 + Math.max(0, f) * .22 + (R() - .5) * .1;
       else t = .22 + (f * .5 + .5) * .62 + (R() - .5) * (opt.lj ?? .18) - (1 - d) * .08;
       const L = ls * Rr(.6, 1.15);
-      const k = 2 + (R() * 3 | 0); const ca = R() * TAU;
+      const k = 2 + (R() * 2 | 0); const out = Math.atan2(py - y, px - x); const dir = Math.atan2(Math.sin(out) * .6 + .8, Math.cos(out) * .6);
       const col = rampAt(rp, t, 6);
-      for (let j = 0; j < k; j++) leafDab(g, px + Math.cos(ca + j * 2.1) * L * .7, py + Math.sin(ca + j * 2.1) * L * .55, L, L * .4, ca + j * 2.1 + Rr(-.4, .4), col, 1);
+      leafCluster(g, px, py, L, col, k, dir);
     }
     if (opt.holes) for (let i = 0; i < r / ls * opt.holes; i++) { const a = R() * TAU, d = Rr(.6, .92); leafDab(g, x + Math.cos(a) * d * r, y + Math.sin(a) * d * r * .78, ls * Rr(.5, .9), ls * Rr(.3, .5), R() * 3, opt.holeCol, Rr(.6, .95)); }
   }
@@ -1268,7 +1261,7 @@ function paintCanopy(g, x0, x1, yFn, thick, rp, opt = {}) {
 // shrub/undergrowth mound
 function paintShrub(g, x, y, w, h, rp, opt = {}) { paintFoliage(g, x, y - h * .45, w * .5, h * .55, rp, Object.assign({ clumps: Math.max(2, w / 60 | 0), leaf: 5 }, opt)); }
 // continuous foliage mass from an outline polygon [x,y,...]: base, inner tone clusters, leafy broken edge, rim light
-function leafCluster(g, x, y, L, col, k = 3) { const ca = PRNG() * TAU; for (let j = 0; j < k; j++) leafDab(g, x + Math.cos(ca + j * 2.1) * L * .7, y + Math.sin(ca + j * 2.1) * L * .55, L * Rr(.8, 1.15), L * .4, ca + j * 2.1 + Rr(-.4, .4), col, 1); }
+function leafCluster(g, x, y, L, col, k = 3, dir) { const base = dir ?? (Math.PI / 2 + Rr(-.7, .7)); for (let j = 0; j < k + 1; j++) { const a = base + Rr(-.55, .55); const ox = Rr(-.6, .6) * L, oy = Rr(-.45, .45) * L; leafDab(g, x + ox + Math.cos(a) * L * .45, y + oy + Math.sin(a) * L * .45, L * Rr(.55, .85), L * Rr(.34, .46), a, col, 1); } }
 function paintMass(g, pts, rp, opt = {}) {
   const ls = opt.leaf || 7, lx = opt.lx ?? .62, ly = opt.ly ?? -.78, n = pts.length / 2, mode = opt.mode || 'back';
   const tOf = (f, edge) => mode === 'back' ? (edge && f > .2 ? .5 + f * .5 * Rr(.75, 1) : .06 + Math.max(0, f) * .16 + (PRNG() - .5) * .08) : .25 + (f * .5 + .5) * .6 + (PRNG() - .5) * .15;
@@ -1291,8 +1284,8 @@ function paintMass(g, pts, rp, opt = {}) {
     const ox = ey / el * orient, oy = -ex / el * orient; const f = ox * lx + oy * ly;
     for (let s = acc; s < el; s += ls * .8) {
       const x = pts[2 * i] + ex * s / el, y = pts[2 * i + 1] + ey * s / el;
-      const out = Rr(-.6, 1.2) * ls; leafCluster(g, x + ox * out, y + oy * out, ls * Rr(.75, 1.1), rampAt(rp, tOf(f, true), 5), 2 + (PRNG() * 3 | 0));
-      if (PRNG() < .35) leafCluster(g, x + ox * (out + ls * 1.4), y + oy * (out + ls * 1.4), ls * .7, rampAt(rp, tOf(f, true), 5), 2);
+      const out = Rr(-.6, 1.1) * ls, dir = Math.atan2(oy * .7 + .7, ox * .7); leafCluster(g, x + ox * out, y + oy * out, ls * Rr(.75, 1.05), rampAt(rp, tOf(f, true), 5), 2 + (PRNG() * 2 | 0), dir);
+      if (PRNG() < .3) leafCluster(g, x + ox * (out + ls * 1.2), y + oy * (out + ls * 1.2), ls * .65, rampAt(rp, tOf(f, true), 5), 1, dir);
     }
     acc = 0;
   }
@@ -1758,15 +1751,21 @@ function flame(ctx, x, y, ang, len, wid, f, pow) {
   glowSprite(ctx, x + c * len * .4, y + s * len * .4, wid * 4.5, '255,170,90', .22 * pow);
   ctx.restore();
 }
-function plume(ctx, x, y, ang, len, wid, f, pow) {
-  if (pow <= .01) return; const c = Math.cos(ang), s = Math.sin(ang), n = 16;
-  const prof = u => u < .18 ? lerp(.55, 1, u / .18) : Math.pow(1 - (u - .18) / .82, .8) * (1 + .25 * Math.sin(u * 9));
-  const layer = (lk, wk, col, jit, a) => { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.beginPath(); const L = len * lk, Wd = wid * wk; ctx.moveTo(x - s * Wd * .3, y + c * Wd * .3);
-    for (let i = 1; i <= n; i++) { const u = i / n, w = Wd * .5 * prof(u) * (1 + (hashf(f >> 1, i, lk * 100 | 0) - .5) * jit); ctx.lineTo(x + c * L * u - s * w, y + s * L * u + c * w); }
-    for (let i = n; i >= 1; i--) { const u = i / n, w = Wd * .5 * prof(u) * (1 + (hashf(f >> 1, i + 50, lk * 100 | 0) - .5) * jit); ctx.lineTo(x + c * L * u + s * w, y + s * L * u - c * w); }
-    ctx.lineTo(x + s * Wd * .3, y - c * Wd * .3); ctx.closePath(); ctx.fill(); };
-  const ca = clamp(pow * 2.5, 0, 1); ctx.save(); layer(1, 1.25, '#ff9a46', .45, .85 * pow); layer(.82, .95, '#ffc766', .35, .95 * pow); layer(.6, .62, '#fff0c4', .25, ca); layer(.38, .3, '#ffffff', .15, ca); ctx.restore();
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 4; k++) { const u = k / 3; glowSprite(ctx, x + c * len * u * .8, y + s * len * u * .8, wid * (2.2 + u * 2), '255,190,110', .32 * pow * (1 - u * .5)); } glowSprite(ctx, x, y, wid * 1.6, '255,250,230', .7 * pow * ca); ctx.restore();
+function plume(ctx, x, y, ang, len, wid, f, pow, pass = 'all') {
+  if (pow <= .01) return; const doBody = pass !== 'glow', doGlow = pass !== 'body'; const c = Math.cos(ang), sn = Math.sin(ang), n = 18, fl = 1 + (hashf(f >> 1, 7, 3) - .5) * .12;
+  const prof = u => u < .1 ? lerp(.7, 1, u / .1) : Math.pow(1 - (u - .1) / .9, 1.25);
+  const shape = (lk, wk, col, a, wob) => { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.beginPath(); const L = len * lk * fl, Wd = wid * wk;
+    const pt = (u, side) => { const w = Wd * .5 * prof(u) * (1 + wob * Math.sin(u * 14 + f * .9 + side)); return [x + c * L * u - sn * w * side, y + sn * L * u + c * w * side]; };
+    let p = pt(0, 1); ctx.moveTo(p[0], p[1]); for (let i = 1; i <= n; i++) { p = pt(i / n, 1); ctx.lineTo(p[0], p[1]); } for (let i = n; i >= 0; i--) { p = pt(i / n, -1); ctx.lineTo(p[0], p[1]); } ctx.closePath(); ctx.fill(); };
+  const ca = clamp(pow * 2.5, 0, 1);
+  if (doBody) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter'; shape(1.15, 1.9, 'rgb(255,150,70)', .22 * pow, .08); shape(1.0, 1.35, 'rgb(255,200,110)', .35 * pow, .06);
+  ctx.globalCompositeOperation = 'source-over'; shape(.86, .92, '#ffd98a', .95 * ca, .05); shape(.7, .58, '#fff3cf', ca, .04); shape(.5, .3, '#ffffff', ca, .02);
+  // shock rings along the core
+  ctx.globalCompositeOperation = 'lighter'; for (let k = 1; k <= 3; k++) { const u = k * .16 + (f % 2) * .02; const w = wid * .32 * prof(u); const px = x + c * len * u, py = y + sn * len * u; ctx.globalAlpha = .55 * ca; ctx.fillStyle = '#fffbe8'; ctx.beginPath(); ctx.ellipse(px, py, w, w * .38, ang + Math.PI / 2, 0, TAU); ctx.fill(); }
+  ctx.restore(); }
+  if (doGlow) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 4; k++) { const u = k / 3; glowSprite(ctx, x + c * len * u * .8, y + sn * len * u * .8, wid * (2.4 + u * 2.4), '255,196,120', .28 * pow * (1 - u * .5)); } glowSprite(ctx, x, y, wid * 1.8, '255,250,232', .75 * pow * ca); ctx.restore(); }
 }
 function shockRing(ctx, M, t, t0, x, y, r1, life) { const dt = t - t0; if (dt < 0 || dt > life) return; const u = dt / life, r = r1 * EASE.out3(u); const [sx, sy] = mAp(M, x, y); const sc = mScale(M); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,244,214,${.7 * (1 - u)})`; ctx.lineWidth = (14 - 10 * u) * sc; ctx.beginPath(); ctx.ellipse(sx, sy, r * sc, r * .16 * sc, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
 function eyeGlow(ctx, o, a, k = 1) { if (a <= .01) return; ctx.save(); ctx.globalCompositeOperation = 'lighter'; const r = o.ppu * 3.2 * k; for (const e of o.eyes) { glowSprite(ctx, e[0], e[1], r, '150,255,240', .55 * a); glowSprite(ctx, e[0], e[1], r * .35, '235,255,250', .8 * a); } ctx.restore(); }
@@ -1777,6 +1776,14 @@ function clearCel(c) { const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 
 function maskLinear(cel, x0, y0, x1, y1) { const g = cel.getContext('2d'); g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); g.restore(); }
 function blit(c, a = 1, op = 'source-over') { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.globalCompositeOperation = op; ctx.drawImage(c, 0, 0); ctx.restore(); }
 function robot(g, P, V, o = {}) { RC.rim = o.rim ?? 1; RC.sway = o.swayFn || null; const r = drawRobot(g, P, V, { pal: palMix(o.sunT ?? 0, o.haze, o.dim ?? 1), seed: o.seed ?? 1, sunT: o.sunT ?? 0, eye: o.eye || 0, core: o.core || 0, look: o.look || 0, strandSway: o.sway || 0, sapSway: o.sap || 0, cw: o.cw, ch: o.ch }); RC.sway = null; return r; }
+/* clean-up convention: the outer silhouette line is a touch heavier than the inner part lines */
+function boldSilhouette(c, px, col = '#241c20') {
+  if (px <= .2) return; const t = mkCanvas(c.width, c.height), g = t.getContext('2d');
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [.71, .71], [-.71, .71], [.71, -.71], [-.71, -.71]]) g.drawImage(c, dx * px, dy * px);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, t.width, t.height);
+  g.globalCompositeOperation = 'source-over'; g.drawImage(c, 0, 0);
+  const cg = c.getContext('2d'); cg.save(); cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'copy'; cg.drawImage(t, 0, 0); cg.restore();
+}
 /* held cels photographed under a moving camera: render each drawing once, re-composite with the camera delta */
 const CELC = { map: new Map(), order: [] };
 const PADC = () => Math.round(W * .09);
@@ -1785,6 +1792,7 @@ function cel(key, P, V, o = {}, refV = null) {
   if (!e) {
     const pad = PADC(), R0 = refV || V; const c = mkCanvas(W + 2 * pad, H + 2 * pad); const g = c.getContext('2d');
     const out = robot(g, P, mMul(mT(pad, pad), R0), Object.assign({}, o, { cw: W + 2 * pad, ch: H + 2 * pad }));
+    boldSilhouette(c, 1.1 * SC, o.sunT > .5 ? '#2a2026' : '#211b22');
     e = { c, Vref: R0, pad, out }; CELC.map.set(key, e); CELC.order.push(key); while (CELC.order.length > 8) CELC.map.delete(CELC.order.shift());
   }
   const D = mMul(V, mInv(e.Vref)), pd = e.pad; const ptf = q => { const p = mAp(D, q[0] - pd, q[1] - pd); return p; };
@@ -2006,9 +2014,9 @@ function buildCuts() {
     const M = camM({ x: 1000, y: lerp(1560, 1590, EASE.io(clamp(t / 1.3, 0, 1))), z: .975, sx: sh.sx, sy: sh.sy }); drawPlate(ctx, P.bg, M);
     const tq = onTwos(t); const pose = keyed(tq, IGN); const V = vRoot(M, 'low');
     groundShadow(ctx, V, pose, .9);
-    const c9 = cel('c9:' + Math.round(tq * 24), pose, V, { sunT: .9, haze: ['#e6d2aa', .08], dim: .97, rim: 1.5, seed: drawingId(tq, IGN) + 900, eye: 1, core: .8 + pw * .2, sway: pw * Math.sin(tq * 20) * .5, sap: pw * .25 * Math.sin(tq * 15) }); c9.draw(); const o = c9.out;
-    const ta = mAngle(o.S.torso) + Math.PI / 2;
-    for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (8 + 46 * pw) * (1 + .06 * Math.sin(f * 2.1)), o.ppu * (5 + 4 * pw), f, pw);
+    const c9 = cel('c9:' + Math.round(tq * 24), pose, V, { sunT: .9, haze: ['#e6d2aa', .08], dim: .97, rim: 1.5, seed: drawingId(tq, IGN) + 900, eye: 1, core: .8 + pw * .2, sway: pw * Math.sin(tq * 20) * .5, sap: pw * .25 * Math.sin(tq * 15) }); const o = c9.out;
+    const ta = mAngle(o.S.torso) + Math.PI / 2 + .42; const pl = (pass) => { for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (8 + 46 * pw) * (1 + .06 * Math.sin(f * 2.1)), o.ppu * (5 + 4 * pw), f, pw, pass); };
+    pl('body'); c9.draw(); pl('glow');
     shockRing(ctx, M, tq, 1.3, ROOT.low[0], ROOT.low[1], 900, 1.4);
     eyeGlow(ctx, o, 1, 1.6); coreGlow(ctx, o, .9, .9);
     clouds(ctx, M, tq, gClouds, DUST); leaves(ctx, M, tq, gLeaves, 1);
@@ -2031,9 +2039,10 @@ function buildCuts() {
     if (rise < 1400) {
       const smear = t > .12 && t < .22; let VV = V;
       if (smear) { const [rx, ry] = mAp(V, 0, -60); VV = mMul(mT(rx, ry), mMul(mS(.92, 1.45), mMul(mT(-rx, -ry), V))); }
-      const o = robot(ctx, pose, VV, { sunT: .95, haze: ['#ffe2a8', .06], dim: 1, rim: 1.6, seed: 950 + Math.floor(t * 24), eye: 1, core: 1, sway: -.8 });
+      const g1 = clearCel(CEL1); const o = robot(g1, pose, VV, { sunT: .95, haze: ['#ffe2a8', .06], dim: 1, rim: 1.6, seed: 950 + Math.floor(t * 24), eye: 1, core: 1, sway: -.8 });
       const ta = mAngle(o.S.torso) + Math.PI / 2;
-      for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1);
+      for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1, 'body');
+      boldSilhouette(CEL1, 1.1 * SC); blit(CEL1); for (const e of o.engines) plume(ctx, e[0], e[1], ta, o.ppu * (t < .12 ? 40 : 90), o.ppu * 9, f, 1, 'glow');
       if (t > .12) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 9; k++) { const xx = mAp(V, -30 + k * 8 + hashf(k, f, 3) * 6, 0)[0], y0 = mAp(V, 0, -rise / ROOT.low[2] - 10)[1], L = (200 + hashf(k, f, 5) * 500) * SC; ctx.strokeStyle = `rgba(255,248,226,${.25 + hashf(k, f, 7) * .3})`; ctx.lineWidth = (1.5 + hashf(k, f, 9) * 3) * SC; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y0 + L); ctx.stroke(); } ctx.restore(); }
     }
     // light trail left through the gap
@@ -2283,6 +2292,7 @@ function poseSheet() {
   list.forEach((P, i) => drawRobot(ctx, P, mMul(mS(SC), mMul(mT(120 + i * 205, 900), mS(3.6))), { pal: palMix(1), seed: 3 + i }));
 }
 function boot() {
+  if (QS.get('test')) document.getElementById('card').style.display = 'none';
   initRobot(); INK_W = 2.0 * SC; PK = SC * 1.1; makeGrain();
   if (QS.get('test') === 'wide') { const t0 = performance.now(); PLATES.wide = plateWide(); PLATES.wide.rays = raysLayer(2200, 1190, [1440, 300], [[2.2, .025, 1500, .5], [2.32, .018, 1400, .42], [2.06, .02, 1500, .36], [2.45, .03, 1300, .3], [1.96, .03, 1300, .26], [2.6, .02, 1200, .22]], '255,228,176'); console.log('plate ms', (performance.now() - t0).toFixed(0)); testWide(0); window.__seek = (t) => testWide(t); window.__ready = true; return; }
   if (QS.get('test') === 'plate') { const n = QS.get('p'); const f = { soft: plateSoft, low: plateLow, canopy: plateCanopy, sky: plateSky, wide: plateWide }[n]; const t0 = performance.now(); PLATES[n] = f(); console.log(n, 'ms', (performance.now() - t0).toFixed(0)); testPlate(n); window.__seek = () => testPlate(n); window.__ready = true; return; }
